@@ -2,13 +2,14 @@
 // CS 372 Movie Streaming Site (Server)
 // Holds all ther server side functions
 
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 const express = require("express");
 const bodyParser = require("body-parser");
 const multer = require("multer");
 const path = require("path");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -89,8 +90,13 @@ app.post("/checkNewUser", upload.none(), async (req, res) => {
         // User does not exist, add new user
         const salt = generateSalt();
         const hashedPassword = hashPassword(password, salt);
-        const result = await collection.insertOne({ user, 
-            password: hashedPassword, salt, failedAttempts: 0 });
+        const result = await collection.insertOne({ 
+            user, 
+            password: hashedPassword, 
+            salt, 
+            failedAttempts: 0,
+            role: "viewer" // Default role for new users
+        });
 
         console.log(`New user added with _id: ${result.insertedId}`);
         return res.json({ status: "newUser", message: `New user created: ${user}` });
@@ -124,9 +130,12 @@ app.post("/checkLogin", upload.none(), async (req, res) => {
         
         // User exists, check password
         if (hashedPassword === existUser.password) {
-            // Reset failedAttempts to 0 on successful login
-            await collection.updateOne( { user }, { $set: { failedAttempts: 0 } });
-            return res.json({ status: "goodLogin", message: `Hi ${user}!` });
+            await collection.updateOne({ user }, { $set: { failedAttempts: 0 } });
+            return res.json({ 
+                status: "goodLogin", 
+                message: `Hi ${user}!`,
+                role: existUser.role // Include role in response
+            });
         } else {
             // Handle failed login
             const result = await handleFailedLogin(collection, user);
@@ -195,4 +204,78 @@ app.post("/requestPwReset", async (req, res) => {
 // Start the server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
+});
+
+
+///////////////////////////////////
+// Movie Gallery API Endpoints
+///////////////////////////////////
+
+// Get all movies sorted alphabetically
+app.get('/api/movies', async (req, res) => {
+    try {
+        const database = client.db("streamMovieDb");
+        const collection = database.collection("streamMovieGallery");
+        
+        const movies = await collection.find()
+            .sort({ sortTitle: 1 }) // Sort by sortTitle ascending
+            .toArray();
+            
+        res.json(movies);
+    } catch (error) {
+        console.error("Error fetching movies:", error);
+        res.status(500).json({ error: "Failed to fetch movies" });
+    }
+});
+
+// Add a new movie (editor only)
+app.post('/api/movies', upload.none(), async (req, res) => {
+    try {
+        const { title, genre, youtubeId } = req.body;
+        
+        if (!title || !genre || !youtubeId) {
+            return res.status(400).json({ error: "Title, genre and YouTube ID are required" });
+        }
+        
+        if (!/^[a-zA-Z0-9_-]{11}$/.test(youtubeId)) {
+            return res.status(400).json({ error: "Invalid YouTube ID format" });
+        }
+        
+        const database = client.db("streamMovieDb");
+        const collection = database.collection("streamMovieGallery");
+        
+        const newMovie = {
+            title,
+            sortTitle: title.toLowerCase().replace(/^the /, ''),
+            genre,
+            youtubeId,
+            createdAt: new Date()
+        };
+        
+        const result = await collection.insertOne(newMovie);
+        res.status(201).json({ ...newMovie, _id: result.insertedId });
+        
+    } catch (error) {
+        console.error("Error adding movie:", error);
+        res.status(500).json({ error: "Failed to add movie" });
+    }
+});
+
+// Delete a movie (editor only)
+app.delete('/api/movies/:id', async (req, res) => {
+    try {
+        const database = client.db("streamMovieDb");
+        const collection = database.collection("streamMovieGallery");
+        
+        const result = await collection.deleteOne({ _id: new ObjectId(req.params.id) });
+        
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: "Movie not found" });
+        }
+        
+        res.status(204).end();
+    } catch (error) {
+        console.error("Error deleting movie:", error);
+        res.status(500).json({ error: "Failed to delete movie" });
+    }
 });

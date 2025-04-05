@@ -5,70 +5,157 @@ Holds all styling for the Web page
 Works with streamNetflixWeb.html
 */
 
-
 .tab {
-    overflow: hidden;
-    background-color: #a90000;
-  }
-    
-  /* Style the buttons inside the tab */
-  .tab button {
-    background-color: inherit;
-    float: left;
-    cursor: pointer;
-    padding: 14px 16px;
-    transition: 0.2s;
-    font-size: 20px;
-    font-family:Georgia, 'Times New Roman', Times, serif;
-  }
-    
-  /* Change background color of buttons on hover */
-  .tab button:hover {
-    background-color: #a90000;
-  }
-    
-  /* Create an active/current tablink class */
-  .tab button.active {
-    background-color: #a90000;
-  }
-    
-  /* Style the tab content */
-  .tabcontent {
-    display: none;
-    padding: 6px 12px;
-  }
+  overflow: hidden;
+  background-color: rgb(35, 97, 146);
+}
   
-  .row {
-    display: flex;
-  }
-    
-  .column {
-    flex: 25%;
-    padding: 1px;
-  }
+/* Style the buttons inside the tab */
+.tab button {
+  background-color: inherit;
+  float: left;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.2s;
+  font-size: 20px;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+}
   
-  /* Style for the ToolTips */
-  .tooltip {
-    position: relative;
-    display: inline-block;
-  }
+/* Change background color of buttons on hover */
+.tab button:hover {
+  background-color: rgb(255, 205, 0);
+}
   
-  .tooltip .tooltiptext {
-    visibility: hidden;
-    width: 120px;
-    font-family:Georgia, 'Times New Roman', Times, serif;
-    background-color: rgb(250, 180, 180);
-    color: #4e0000;
-    text-align: center;
-    
+/* Create an active/current tablink class */
+.tab button.active {
+  background-color: rgb(255, 205, 0);
+}
+
+/* Style the tab content */
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+}
+
+/* Grid Layout for Movies */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 15px; /* Space between columns */
+}
+
+.column {
+  flex: 0 0 calc(25% - 15px); /* 4 columns with gap accounted for */
+  box-sizing: border-box;
+}
+
+/* Style for the ToolTips */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: auto;
+  min-width: 120px;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  background-color: rgb(35, 97, 146);
+  color: rgb(255, 255, 255);
+  text-align: center;
+  padding: 5px 10px;
+  border-radius: 4px;
+  
   /* Position the tooltip */
-    position: absolute;
-    z-index: 1;
-    bottom: 100%; /* Adjust to ensure it doesn't overlap */
-    left: 50%;
-    margin-left: -60px;
+  position: absolute;
+  z-index: 1;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+/* Video player styling */
+.tooltip iframe {
+  width: 100%;
+  height: 200px;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tooltip:hover iframe {
+  transform: scale(1.03);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .column {
+    flex: 0 0 calc(33.333% - 15px); /* 3 columns on medium screens */
+  }
+}
+
+@media (max-width: 768px) {
+  .column {
+    flex: 0 0 calc(50% - 15px); /* 2 columns on tablets */
+  }
+}
+
+@media (max-width: 480px) {
+  .column {
+    flex: 0 0 100%; /* 1 column on mobile */
   }
   
-  .tooltip:hover .tooltiptext {
-    visibility: visible;
+  .tooltip iframe {
+    height: 250px; /* Slightly taller on small screens */
   }
+}
+
+/* Editor Controls */
+.editor-controls {
+  background: #f5f5f5;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+.add-movie-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.add-movie-form input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.add-movie-form button {
+  grid-column: span 2;
+  padding: 10px;
+  background-color: rgb(35, 97, 146);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .add-movie-form {
+      grid-template-columns: 1fr;
+  }
+  .add-movie-form button {
+      grid-column: span 1;
+  }
+}
