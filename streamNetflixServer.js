@@ -214,11 +214,22 @@ app.listen(port, () => {
 // Get all movies sorted alphabetically
 app.get('/api/movies', async (req, res) => {
     try {
+        const { search } = req.query;
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieGallery");
         
-        const movies = await collection.find()
-            .sort({ sortTitle: 1 }) // Sort by sortTitle ascending
+        let query = {};
+        if (search) {
+            query = { 
+                $or: [
+                    { title: { $regex: search, $options: 'i' } },
+                    { genre: { $regex: search, $options: 'i' } }
+                ]
+            };
+        }
+        
+        const movies = await collection.find(query)
+            .sort({ sortTitle: 1 })
             .toArray();
             
         res.json(movies);

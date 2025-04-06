@@ -159,3 +159,31 @@ Works with streamNetflixWeb.html
       grid-column: span 1;
   }
 }
+
+/* Search Container */
+.search-container {
+  margin: 20px 0;
+  display: flex;
+  gap: 10px;
+}
+
+.search-container input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  flex-grow: 1;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+.search-container button {
+  padding: 10px 20px;
+  background-color: rgb(35, 97, 146);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.search-container button:hover {
+  background-color: rgb(25, 77, 126);
+}

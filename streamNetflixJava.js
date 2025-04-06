@@ -136,15 +136,18 @@ document
 
 let currentUserRole = 'viewer'; // This will be set during login
 
-async function loadMovies() {
+async function loadMovies(searchTerm = '') {
     try {
-        const response = await fetch('/api/movies');
+        const url = searchTerm 
+            ? `/api/movies?search=${encodeURIComponent(searchTerm)}`
+            : '/api/movies';
+            
+        const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to load movies');
         
         const movies = await response.json();
-        renderMovies(movies);
+        renderMovies(movies, searchTerm);
         
-        // Add editor controls if user is an editor
         if (currentUserRole === 'content editor') {
             addEditorControls();
         }
@@ -154,25 +157,35 @@ async function loadMovies() {
     }
 }
 
-function renderMovies(movies) {
+// Update searchMovies to use server-side search
+function searchMovies() {
+    const searchTerm = document.getElementById('searchInput').value.trim();
+    loadMovies(searchTerm);
+}
+
+function renderMovies(movies, searchTerm = '') {
     const pages = ['galleryPage', 'marketingPage', 'editorPage']
         .map(id => document.getElementById(id))
         .filter(page => page !== null);
     
-    // Clear and render to all pages
     pages.forEach(page => {
         const header = page.querySelector('h1');
+        const searchContainer = page.querySelector('.search-container');
         page.innerHTML = '';
         if (header) page.appendChild(header);
+        if (searchContainer) page.appendChild(searchContainer);
         
-        // Create movie container
         const container = document.createElement('div');
         container.className = 'movies-container';
         page.appendChild(container);
         
-        // Render movies in rows of 4
-        for (let i = 0; i < movies.length; i += 4) {
-            const rowMovies = movies.slice(i, i + 4);
+        const filteredMovies = searchTerm 
+            ? movies.filter(movie => 
+                movie.title.toLowerCase().includes(searchTerm.toLowerCase()))
+            : movies;
+        
+        for (let i = 0; i < filteredMovies.length; i += 4) {
+            const rowMovies = filteredMovies.slice(i, i + 4);
             container.innerHTML += createMovieRow(rowMovies);
         }
     });
@@ -353,5 +366,22 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('marketingPage').style.display === 'block' ||
         document.getElementById('editorPage').style.display === 'block') {
         loadMovies();
+    }
+});
+
+///////////////////////////////////
+// Search Functions
+///////////////////////////////////
+
+
+// Add event listener for Enter key
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchMovies();
+            }
+        });
     }
 });
