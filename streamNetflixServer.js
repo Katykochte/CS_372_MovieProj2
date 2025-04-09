@@ -315,15 +315,77 @@ app.post('/updateLikeDislike', async (req, res) => {
         }
 
         if (action == 'like') {
-            await collection.updateOne(
-                { _id: new ObjectId(movieID) },
-                { $inc: { totalLikes: 1 } }
-            );
-        } else {
-            await collection.updateOne(
-                { _id: new ObjectId(movieID) },
-                { $inc: { totalDislikes: 1 } } 
-            );
+            if (await userCollection.findOne({
+                _id: new ObjectId(userID),
+                likedMovies: new ObjectId(movieID)
+            })){
+
+            } else if (await userCollection.findOne({
+                _id: new ObjectId(userID),
+                dislikedMovies: new ObjectId(movieID)
+            })) {
+                await collection.updateOne(
+                    { _id: new ObjectId(movieID) },
+                    { 
+                        $inc: { 
+                            totalLikes: 1,
+                            totalDislikes: -1 
+                        } 
+                    }
+                );
+                await userCollection.updateOne(
+                    { _id: new ObjectId(userID) },
+                    {
+                        $pull: { dislikedMovies: new ObjectId(movieID) } ,
+                        $addToSet: { likedMovies: new ObjectId(movieID) } 
+                    }
+                );
+            }else {
+                await collection.updateOne(
+                    { _id: new ObjectId(movieID) },
+                    { $inc: { totalLikes: 1 } }
+                );
+                await userCollection.updateOne(
+                    { _id: new ObjectId(userID) },
+                    { $addToSet: { likedMovies: new ObjectId(movieID) } }
+                );
+            }
+        } else if (action == 'dislike') {
+            if (await userCollection.findOne({
+                _id: new ObjectId(userID),
+                dislikedMovies: new ObjectId(movieID)
+            })){
+
+            } else if (await userCollection.findOne({
+                _id: new ObjectId(userID),
+                likedMovies: new ObjectId(movieID)
+            })) {
+                await collection.updateOne(
+                    { _id: new ObjectId(movieID) },
+                    { 
+                        $inc: { 
+                            totalLikes: -1,
+                            totalDislikes: 1 
+                        } 
+                    }
+                );
+                await userCollection.updateOne(
+                    { _id: new ObjectId(userID) },
+                    {
+                        $pull: { likedMovies: new ObjectId(movieID) } ,
+                        $addToSet: { dislikedMovies: new ObjectId(movieID) } 
+                    }
+                );
+            }else {
+                await collection.updateOne(
+                    { _id: new ObjectId(movieID) },
+                    { $inc: { totalDislikes: 1 } }
+                );
+                await userCollection.updateOne(
+                    { _id: new ObjectId(userID) },
+                    { $addToSet: { dislikedMovies: new ObjectId(movieID) } }
+                );
+            }
         }
 
         const updateUser = {};
