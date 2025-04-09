@@ -95,7 +95,9 @@ app.post("/checkNewUser", upload.none(), async (req, res) => {
             password: hashedPassword, 
             salt, 
             failedAttempts: 0,
-            role: "viewer" // Default role for new users
+            role: "viewer", // Default role for new users
+            likedMovies: [],
+            dislikedMovies: []
         });
 
         console.log(`New user added with _id: ${result.insertedId}`);
@@ -134,6 +136,7 @@ app.post("/checkLogin", upload.none(), async (req, res) => {
             return res.json({ 
                 status: "goodLogin", 
                 message: `Hi ${user}!`,
+                userID: existUser._id,
                 role: existUser.role // Include role in response
             });
         } else {
@@ -260,7 +263,9 @@ app.post('/api/movies', upload.none(), async (req, res) => {
             sortTitle: title.toLowerCase().replace(/^the /, ''),
             genre,
             youtubeId,
-            createdAt: new Date()
+            createdAt: new Date(),
+            totalLikes: 0,
+            totalDislikes: 0
         };
         
         const result = await collection.insertOne(newMovie);
@@ -289,4 +294,52 @@ app.delete('/api/movies/:id', async (req, res) => {
         console.error("Error deleting movie:", error);
         res.status(500).json({ error: "Failed to delete movie" });
     }
+});
+
+app.post('/updateLikeDislike', async (req, res) => {
+    const {movieID, action, userID} = req.body;
+
+    try {
+        const database = client.db("streamMovieDb");
+        const collection = database.collection("streamMovieGallery");
+        const userCollection = database.collection("streamMovieCollection");
+
+        const movie = await collection.findOne({ _id: new ObjectId(movieID) });
+        if(!movie) {
+            return res.status(404).send('Movie not found');
+        }
+
+        const user = await userCollection.findOne({ _id: new ObjectId(userID) });
+        if (!user) {
+            return res.status(404).send("User not found");
+        }
+
+        if (action == 'like') {
+            await collection.updateOne(
+                { _id: new ObjectId(movieID) },
+                { $inc: { totalLikes: 1 } }
+            );
+        } else {
+            await collection.updateOne(
+                { _id: new ObjectId(movieID) },
+                { $inc: { totalDislikes: 1 } } 
+            );
+        }
+
+        const updateUser = {};
+        if (action === 'like') {
+            updateUser.$addToSet = { likedMovies: new ObjectId(movieID) }; // Add to likedMovies if not already present
+        } else if (action === 'dislike') {
+            updateUser.$addToSet = { dislikedMovies: new ObjectId(movieID) }; // Add to dislikedMovies if not already present
+        }
+
+        await userCollection.updateOne({ _id: new ObjectId(userID) }, updateUser);
+
+
+        res.status(200).json({ message: `Movie ${action}d succesfully!`});
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Error updating like/dislike');
+    }
+
 });

@@ -71,6 +71,7 @@ async function submitForm(event, action) {
         });
 
         const result = await response.json();
+        console.log(result);
 
         if (result.status === "newUser" || result.status === "goodLogin") {
             alert(result.message);
@@ -85,6 +86,10 @@ async function submitForm(event, action) {
                 // Default to viewer gallery
                 document.getElementById("galleryPage").style.display = "block";
             }
+
+            localStorage.setItem("userID", result.userID);
+            console.log("userID stored in local storage: ", result.userID);
+            localStorage.setItem("role", result.role);
             
         } else if (result.status === "badLogin" || result.status == "userDeleted") {
             alert(result.message);
@@ -189,6 +194,7 @@ function renderMovies(movies, searchTerm = '') {
             container.innerHTML += createMovieRow(rowMovies);
         }
     });
+    addLikeDislikeListeners();
 }
 
 function createMovieRow(movies) {
@@ -207,6 +213,10 @@ function createMovieRow(movies) {
                     frameborder="0" 
                     allowfullscreen>
                 </iframe>
+                <div class="like-dislike-buttons">
+                    <img src="/public/assets/thumbs-up.svg" alt="Like" class="like-btn" data-movie-id="${movie._id}">
+                    <img src="/public/assets/thumbs-down.svg" alt="Dislike" class="dislike-btn" data-movie-id="${movie._id}">
+                </div>
             </div>
         </div>
     `;
@@ -326,6 +336,7 @@ async function submitForm(event, action) {
         const result = await response.json();
 
         if (result.status === "newUser" || result.status === "goodLogin") {
+            localStorage.setItem('userID', result.userID);
             currentUserRole = result.role || 'viewer'; // Store user role
             alert(result.message);
             document.getElementById("loginPage").style.display = "none";
@@ -385,3 +396,43 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+function addLikeDislikeListeners() {
+    document.querySelectorAll('.like-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const movieID = this.getAttribute('data-movie-id');
+            handleLikeDislike(movieID, 'like');
+        });
+    });
+
+    document.querySelectorAll('.dislike-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const movieID = this.getAttribute('data-movie-id');
+            handleLikeDislike(movieID, 'dislike');
+        });
+    });
+}
+
+
+function handleLikeDislike(movieID, action) {
+    const userID = localStorage.getItem("userID");
+
+    if(!userID) {
+        console.error("User is not logged in.", userID);
+        return;
+    }
+
+    fetch('/updateLikeDislike', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ movieID, action, userID })  // Send movieId and action (like/dislike) to the server
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Optionally, update UI based on the response
+        console.log(data);
+    })
+    .catch(error => console.error('Error:', error));
+}
