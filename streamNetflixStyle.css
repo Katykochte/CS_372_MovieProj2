@@ -187,3 +187,20 @@ Works with streamNetflixWeb.html
 .search-container button:hover {
   background-color: rgb(25, 77, 126);
 }
+
+.like-dislike-buttons {
+  display: flex;
+  justify-content: space-evenly;
+  margin-top: 5px;
+}
+
+.like-dislike-buttons img {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.like-dislike-buttons img:hover {
+  transform: scale(1.2);
+}
