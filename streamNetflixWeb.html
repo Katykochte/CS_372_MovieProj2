@@ -24,10 +24,19 @@
                             </h1>
                             <div class="tab">
                                 <button class="tablinks" name="loginTab" id="loginButton"
-                                 onclick="openTab()" style="color:white;">
+                                 onclick="openLoginTab()" style="color:white;">
                                     Login
                                 </button>
+                                <button class="tablinks" name="favoritesTab" id="favoritesButton"
+                                onclick="openFavoritesTab()" style="color: white;">
+                                    Favorites
+                                </button>
+                                <button class="tablinks" name="galleryTab" id="galleryButton"
+                                onclick="openGalleryTab()" style="color: white;">
+                                    Gallery
+                                </button>
                             </div>
+
                             <br>
                     </header>
                 
@@ -52,7 +61,16 @@
                             <button name="forgotPwBT" id="forgotPwBT"> Forgot Password? </button>
                         </div> 
                     </div>
-                
+
+                    <div id="favoritesPage" name="favoritesPage" style="display: none;">
+                        <h1 style="font-size:35px;">
+                            <b style="color:rgb(37, 106, 146);">
+                                Your Favorites
+                            </b>
+                        </h1>
+                        <div class="movies-container"></div>
+                    </div>
+
                     <!-- Division for Viewer content -->
                     <div id="galleryPage" name="galleryPage" style="display:none;">
                         <h1 style="font-size:35px;">
