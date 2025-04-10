@@ -9,3 +9,6 @@ Edit the section that says "User credentials" and it will spit out a hashed pass
 Add a new collection to the streamMovieDb called streamMovieGallery (this will hold all the url/info for the youtube videos)
 These also need to be manually added but the easiest way to do so is by logging into the content editor 
 
+## Known Issues
+
+- Favorites and Likes/Dislikes do not work properly with newly created accounts, i.e. in order to use these features you must create an account, then reload the page and login with the newly created account.
