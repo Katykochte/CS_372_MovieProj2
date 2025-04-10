@@ -4,10 +4,27 @@
 // Works with streamNetflixServer.js + streamNetflixWeb.html
 
 // Top tab control
-function openTab() {
+function openLoginTab() {
     // Hide all possible pages
     document.getElementById("loginPage").style.display = "block";
     document.getElementById("galleryPage").style.display = "none";
+    document.getElementById("marketingPage").style.display = "none";
+    document.getElementById("editorPage").style.display = "none";
+}
+
+function openFavoritesTab() {
+    // Hide all possible pages
+    document.getElementById("favoritesPage").style.display = "block";
+    document.getElementById("galleryPage").style.display = "none";
+    document.getElementById("marketingPage").style.display = "none";
+    document.getElementById("editorPage").style.display = "none";
+    showFavorites();
+}
+
+function openGalleryTab() {
+    // Hide all possible pages
+    document.getElementById("favoritesPage").style.display = "none";
+    document.getElementById("galleryPage").style.display = "block";
     document.getElementById("marketingPage").style.display = "none";
     document.getElementById("editorPage").style.display = "none";
 }
@@ -197,6 +214,28 @@ function renderMovies(movies, searchTerm = '') {
     addLikeDislikeListeners();
 }
 
+function renderFavorites(movies) {
+    const favoritesPage = document.getElementById("favoritesPage");
+    if (!favoritesPage) return;
+
+    const container = favoritesPage.querySelector('.movies-container');
+    if (!container) return;
+
+    container.innerHTML = ''; 
+
+    if (movies.length === 0) {
+        container.innerHTML = '<p>No favorite movies found. Start liking some!</p>';
+        return;
+    }
+
+    for (let i = 0; i < movies.length; i += 4) {
+        const rowMovies = movies.slice(i, i + 4);
+        container.innerHTML += createMovieRow(rowMovies);
+    }
+
+    addLikeDislikeListeners();
+}
+
 function createMovieRow(movies) {
     let rowHtml = '<div class="row">';
     
@@ -349,7 +388,7 @@ async function submitForm(event, action) {
             } else {
                 document.getElementById("galleryPage").style.display = "block";
             }
-            
+
             // Load movies after successful login
             loadMovies();
         } else {
@@ -427,12 +466,44 @@ function handleLikeDislike(movieID, action) {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ movieID, action, userID })  // Send movieId and action (like/dislike) to the server
+        body: JSON.stringify({ movieID, action, userID })  
     })
     .then(response => response.json())
     .then(data => {
-        // Optionally, update UI based on the response
+        
         console.log(data);
     })
     .catch(error => console.error('Error:', error));
 }
+
+// Fetch Favorites 
+function showFavorites() {
+    //Retrieve currently logged in user from local storage
+    const userID = localStorage.getItem("userID");
+    if (!userID) {
+      console.error("User not logged in");
+      return;
+    }
+    
+    // Fetch info about liked movies from user document
+    fetch(`/user/${userID}`)
+      .then(response => response.json())
+      .then(user => {
+        const likedMovieIDs = user.likedMovies || [];
+        
+        if (likedMovieIDs.length === 0) {
+          console.log("No favorites found");
+          return []; 
+        }
+  
+        // Use the liked movie ID's to get full movie objects
+        return fetch(`/movies?ids=${likedMovieIDs.join(',')}`);
+      })
+      .then(response => response.json())
+      .then(fullMovies => {
+
+        console.log("Full movie data:", fullMovies);
+        renderFavorites(fullMovies);
+      })
+      .catch(error => console.error("Error:", error));
+    }

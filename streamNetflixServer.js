@@ -405,3 +405,38 @@ app.post('/updateLikeDislike', async (req, res) => {
     }
 
 });
+
+app.get('/user/:id', async (req, res) => {
+    const userID = req.params.id;  
+    try {
+        const database = client.db("streamMovieDb");
+        const userCollection = database.collection("streamMovieCollection");
+
+        const user = await userCollection.findOne({ _id: new ObjectId(userID) });
+        if (!user) {
+            return res.status(404).send("User not found");
+        }
+
+        res.json(user);
+        } catch (error) {
+            console.error(error);
+            res.status(500).send('Error retrieving user data');
+    }
+});
+
+app.get('/movies', async (req, res) => {
+    try {
+        const movieIDs = req.query.ids.split(',').map(id => new ObjectId(id));
+        const database = client.db("streamMovieDb");
+        const moviesCollection = database.collection("streamMovieGallery"); // Replace with your actual collection name
+
+        const movies = await moviesCollection.find({
+            _id: { $in: movieIDs } // Find all movies where _id is in the array
+        }).toArray();
+
+        res.json(movies);
+    } catch (error) {
+        console.error("Error fetching movies:", error);
+        res.status(500).send("Server error");
+    }
+});
