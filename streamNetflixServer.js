@@ -319,11 +319,13 @@ app.post('/updateLikeDislike', async (req, res) => {
                 _id: new ObjectId(userID),
                 likedMovies: new ObjectId(movieID)
             })){
-
+                // If they have already liked it do nothing
             } else if (await userCollection.findOne({
                 _id: new ObjectId(userID),
                 dislikedMovies: new ObjectId(movieID)
             })) {
+                // If they previously disliked the movie remove one dislike, add one like
+                // and move it from their dislikedMovies to their likedMovies
                 await collection.updateOne(
                     { _id: new ObjectId(movieID) },
                     { 
@@ -341,6 +343,9 @@ app.post('/updateLikeDislike', async (req, res) => {
                     }
                 );
             }else {
+                //If they haven't liked or disliked it before
+                //add a like to the movie and add it to the users
+                // likedMovies
                 await collection.updateOne(
                     { _id: new ObjectId(movieID) },
                     { $inc: { totalLikes: 1 } }
@@ -355,11 +360,13 @@ app.post('/updateLikeDislike', async (req, res) => {
                 _id: new ObjectId(userID),
                 dislikedMovies: new ObjectId(movieID)
             })){
-
+                // If its already in their dislikedMovies do nothing
             } else if (await userCollection.findOne({
                 _id: new ObjectId(userID),
                 likedMovies: new ObjectId(movieID)
             })) {
+                // If the movies is in likedMovies, remove one like add one dislike
+                // move the video from users likedMovies, to dislikedMovies
                 await collection.updateOne(
                     { _id: new ObjectId(movieID) },
                     { 
@@ -377,6 +384,8 @@ app.post('/updateLikeDislike', async (req, res) => {
                     }
                 );
             }else {
+                // If they haven't interacted with the video yet
+                // add it to their dislikedMovies and add one dislike to the video
                 await collection.updateOne(
                     { _id: new ObjectId(movieID) },
                     { $inc: { totalDislikes: 1 } }
@@ -387,16 +396,6 @@ app.post('/updateLikeDislike', async (req, res) => {
                 );
             }
         }
-
-        const updateUser = {};
-        if (action === 'like') {
-            updateUser.$addToSet = { likedMovies: new ObjectId(movieID) }; // Add to likedMovies if not already present
-        } else if (action === 'dislike') {
-            updateUser.$addToSet = { dislikedMovies: new ObjectId(movieID) }; // Add to dislikedMovies if not already present
-        }
-
-        await userCollection.updateOne({ _id: new ObjectId(userID) }, updateUser);
-
 
         res.status(200).json({ message: `Movie ${action}d succesfully!`});
     } catch (error) {
