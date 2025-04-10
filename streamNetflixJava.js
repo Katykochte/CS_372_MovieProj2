@@ -4,12 +4,18 @@
 // Works with streamNetflixServer.js + streamNetflixWeb.html
 
 // Top tab control
+// Update the openLoginTab function
 function openLoginTab() {
     // Hide all possible pages
     document.getElementById("loginPage").style.display = "block";
     document.getElementById("galleryPage").style.display = "none";
     document.getElementById("marketingPage").style.display = "none";
     document.getElementById("editorPage").style.display = "none";
+    document.getElementById("favoritesPage").style.display = "none";
+    
+    // Hide gallery and favorites tabs
+    document.getElementById("favoritesButton").style.display = "none";
+    document.getElementById("galleryButton").style.display = "none";
 }
 
 function openFavoritesTab() {
@@ -72,52 +78,53 @@ function validateUser(user) {
 
 // Submit User and Password
 async function submitForm(event, action) {
-    event.preventDefault(); 
-
+    event.preventDefault();
     const user = document.getElementById("user").value;
     const password = document.getElementById("password").value;
 
-    if (!validatePw(password, user) || !validateUser(user)) { return; }
+    if (!validatePw(password, user)) return;
 
     try {
         const endpoint = action === 'login' ? "checkLogin" : "checkNewUser";
         const response = await fetch(`http://localhost:6543/${endpoint}`, {
-            method: "POST", 
+            method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user, password }) 
+            body: JSON.stringify({ user, password })
         });
 
         const result = await response.json();
-        console.log(result);
 
         if (result.status === "newUser" || result.status === "goodLogin") {
-            alert(result.message);
+            // Store the user ID as provided by the server
+            localStorage.setItem('userID', result.userID);
+            currentUserRole = result.role || 'viewer';
+            
+            // Initialize user data
+            localStorage.setItem(`userData_${result.userID}`, JSON.stringify({
+                likedMovies: [],
+                dislikedMovies: []
+            }));
+
+            // Update UI and load movies
             document.getElementById("loginPage").style.display = "none";
+            document.getElementById(currentUserRole === "marketing manager" ? 
+                "marketingPage" : 
+                currentUserRole === "content editor" ? 
+                "editorPage" : 
+                "galleryPage").style.display = "block";
             
-            // Show different pages based on role
-            if (result.role === "marketing manager") {
-                document.getElementById("marketingPage").style.display = "block";
-            } else if (result.role === "content editor") {
-                document.getElementById("editorPage").style.display = "block";
-            } else {
-                // Default to viewer gallery
-                document.getElementById("galleryPage").style.display = "block";
-            }
-
-            localStorage.setItem("userID", result.userID);
-            console.log("userID stored in local storage: ", result.userID);
-            localStorage.setItem("role", result.role);
-            
-        } else if (result.status === "badLogin" || result.status == "userDeleted") {
-            alert(result.message);
-        } else {
-            console.error("Unknown status:", result.status);
+            document.getElementById("favoritesButton").style.display = "block";
+            document.getElementById("galleryButton").style.display = "block";
+            loadMovies();
         }
-
+        
+        alert(result.message);
         document.getElementById("user").value = "";
         document.getElementById("password").value = "";
+
     } catch (error) {
-        alert("Error submitting form");
+        console.error("Error submitting form:", error);
+        alert("Error submitting form. Please try again.");
     }
 }
 
@@ -163,11 +170,17 @@ async function loadMovies(searchTerm = '') {
         const url = searchTerm 
             ? `/api/movies?search=${encodeURIComponent(searchTerm)}`
             : '/api/movies';
-            
+        
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Failed to load movies');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
         const movies = await response.json();
+        if (!Array.isArray(movies)) {
+            throw new Error("Invalid movies data received");
+        }
+        
         renderMovies(movies, searchTerm);
         
         if (currentUserRole === 'content editor') {
@@ -176,6 +189,10 @@ async function loadMovies(searchTerm = '') {
     } catch (error) {
         console.error("Error loading movies:", error);
         alert("Failed to load movies. Please try again later.");
+        // Clear the movies container on error
+        document.querySelectorAll('.movies-container').forEach(container => {
+            container.innerHTML = '<p>Error loading movies. Please refresh the page.</p>';
+        });
     }
 }
 
@@ -191,26 +208,32 @@ function renderMovies(movies, searchTerm = '') {
         .filter(page => page !== null);
     
     pages.forEach(page => {
+        // Clear existing content but preserve search
         const header = page.querySelector('h1');
         const searchContainer = page.querySelector('.search-container');
+        const existingContainer = page.querySelector('.movies-container') || document.createElement('div');
+        
+        existingContainer.className = 'movies-container';
+        existingContainer.innerHTML = '';
+        
         page.innerHTML = '';
         if (header) page.appendChild(header);
         if (searchContainer) page.appendChild(searchContainer);
+        page.appendChild(existingContainer);
         
-        const container = document.createElement('div');
-        container.className = 'movies-container';
-        page.appendChild(container);
+        if (movies.length === 0) {
+            existingContainer.innerHTML = '<p>No movies found. ' + 
+                (searchTerm ? 'Try a different search.' : 'Check back later.') + '</p>';
+            return;
+        }
         
-        const filteredMovies = searchTerm 
-            ? movies.filter(movie => 
-                movie.title.toLowerCase().includes(searchTerm.toLowerCase()))
-            : movies;
-        
-        for (let i = 0; i < filteredMovies.length; i += 4) {
-            const rowMovies = filteredMovies.slice(i, i + 4);
-            container.innerHTML += createMovieRow(rowMovies);
+        // Render movies in rows of 4
+        for (let i = 0; i < movies.length; i += 4) {
+            const rowMovies = movies.slice(i, i + 4);
+            existingContainer.innerHTML += createMovieRow(rowMovies);
         }
     });
+    
     addLikeDislikeListeners();
 }
 
@@ -237,33 +260,45 @@ function renderFavorites(movies) {
 }
 
 function createMovieRow(movies) {
-    let rowHtml = '<div class="row">';
-    
-    movies.forEach(movie => {
-        rowHtml += `
-        <div class="column">
-            <div class="tooltip" id="${movie._id}" data-movie-id="${movie._id}">
-                <span class="tooltiptext">
-                    <strong>${movie.title}</strong><br>
-                    Genre: ${movie.genre}
-                </span>
-                <iframe width="100%" height="200" 
-                    src="https://www.youtube.com/embed/${movie.youtubeId}" 
-                    frameborder="0" 
-                    allowfullscreen>
-                </iframe>
-                <div class="like-dislike-buttons">
-                    <img src="/public/assets/thumbs-up.svg" alt="Like" class="like-btn" data-movie-id="${movie._id}">
-                    <img src="/public/assets/thumbs-down.svg" alt="Dislike" class="dislike-btn" data-movie-id="${movie._id}">
+    try {
+        const userID = localStorage.getItem("userID");
+        const userData = JSON.parse(localStorage.getItem(`userData_${userID}`) || {});
+
+        let rowHtml = '<div class="row">';
+        movies.forEach(movie => {
+            if (!movie._id || !movie.youtubeId) {
+                console.warn("Invalid movie data:", movie);
+                return;
+            }
+
+            const isLiked = (userData.likedMovies || []).some(id => 
+                id.toString() === movie._id.toString());
+            const isDisliked = (userData.dislikedMovies || []).some(id => 
+                id.toString() === movie._id.toString());
+
+            rowHtml += `
+            <div class="column">
+                <div class="tooltip" data-movie-id="${movie._id}">
+                    <iframe src="https://www.youtube.com/embed/${movie.youtubeId}" 
+                        frameborder="0" allowfullscreen></iframe>
+                    <div class="like-dislike-buttons">
+                        <img src="/public/assets/thumbs-up.svg" 
+                             class="like-btn ${isLiked ? 'liked' : ''}" 
+                             data-movie-id="${movie._id}">
+                        <img src="/public/assets/thumbs-down.svg" 
+                             class="dislike-btn ${isDisliked ? 'disliked' : ''}" 
+                             data-movie-id="${movie._id}">
+                    </div>
                 </div>
-            </div>
-        </div>
-    `;
-    });
-    
-    rowHtml += '</div>';
-    return rowHtml;
+            </div>`;
+        });
+        return rowHtml + '</div>';
+    } catch (error) {
+        console.error("Error creating movie row:", error);
+        return '<div class="row"><p>Error displaying movies</p></div>';
+    }
 }
+
 
 function addEditorControls() {
     const editorPage = document.getElementById('editorPage');
@@ -355,52 +390,6 @@ async function handleDeleteMovie(movieId) {
     }
 }
 
-// Update your submitForm function to set the user role
-async function submitForm(event, action) {
-    event.preventDefault();
-    
-    const user = document.getElementById("user").value;
-    const password = document.getElementById("password").value;
-
-    if (!validatePw(password, user)) return;
-
-    try {
-        const endpoint = action === 'login' ? "checkLogin" : "checkNewUser";
-        const response = await fetch(`http://localhost:6543/${endpoint}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user, password })
-        });
-
-        const result = await response.json();
-
-        if (result.status === "newUser" || result.status === "goodLogin") {
-            localStorage.setItem('userID', result.userID);
-            currentUserRole = result.role || 'viewer'; // Store user role
-            alert(result.message);
-            document.getElementById("loginPage").style.display = "none";
-            
-            // Show appropriate page based on role
-            if (currentUserRole === "marketing manager") {
-                document.getElementById("marketingPage").style.display = "block";
-            } else if (currentUserRole === "content editor") {
-                document.getElementById("editorPage").style.display = "block";
-            } else {
-                document.getElementById("galleryPage").style.display = "block";
-            }
-
-            // Load movies after successful login
-            loadMovies();
-        } else {
-            alert(result.message);
-        }
-
-        document.getElementById("user").value = "";
-        document.getElementById("password").value = "";
-    } catch (error) {
-        alert("Error submitting form");
-    }
-}
 
 function extractYouTubeId(url) {
     // Handle various YouTube URL formats
@@ -409,12 +398,18 @@ function extractYouTubeId(url) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
-// Initialize movies when page loads
 document.addEventListener('DOMContentLoaded', () => {
+    // Hide gallery and favorites tabs initially
+    document.getElementById("favoritesButton").style.display = "none";
+    document.getElementById("galleryButton").style.display = "none";
+    
     // Only load movies if we're already logged in (page refresh)
     if (document.getElementById('galleryPage').style.display === 'block' ||
         document.getElementById('marketingPage').style.display === 'block' ||
         document.getElementById('editorPage').style.display === 'block') {
+        // Show gallery and favorites tabs if already logged in
+        document.getElementById("favoritesButton").style.display = "block";
+        document.getElementById("galleryButton").style.display = "block";
         loadMovies();
     }
 });
@@ -452,58 +447,81 @@ function addLikeDislikeListeners() {
     });
 }
 
-
-function handleLikeDislike(movieID, action) {
+async function handleLikeDislike(movieID, action) {
     const userID = localStorage.getItem("userID");
+    if (!userID) return;
 
-    if(!userID) {
-        console.error("User is not logged in.", userID);
+    try {
+        // Update server first
+        const response = await fetch('/updateLikeDislike', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                movieID, 
+                action, 
+                userID 
+            })
+        });
+
+        if (!response.ok) throw new Error('Failed to update like/dislike');
+
+        // Get fresh data from server
+        const userResponse = await fetch(`/user/${userID}`);
+        const userData = await userResponse.json();
+
+        // Update localStorage
+        localStorage.setItem(`userData_${userID}`, JSON.stringify({
+            likedMovies: userData.likedMovies || [],
+            dislikedMovies: userData.dislikedMovies || []
+        }));
+
+        // Force UI refresh
+        const activePage = document.querySelector('[style*="display: block"]').id;
+        if (activePage === "favoritesPage") {
+            showFavorites();
+        } else {
+            loadMovies();
+        }
+
+    } catch (error) {
+        console.error("Error updating like/dislike:", error);
+        alert("Failed to update preference. Please try again.");
+    }
+}
+  
+
+// Fetch Favorites 
+async function showFavorites() {
+    const userID = localStorage.getItem("userID");
+    if (!userID) {
+        alert("Please login to view favorites");
         return;
     }
 
-    fetch('/updateLikeDislike', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ movieID, action, userID })  
-    })
-    .then(response => response.json())
-    .then(data => {
-        
-        console.log(data);
-    })
-    .catch(error => console.error('Error:', error));
-}
-
-// Fetch Favorites 
-function showFavorites() {
-    //Retrieve currently logged in user from local storage
-    const userID = localStorage.getItem("userID");
-    if (!userID) {
-      console.error("User not logged in");
-      return;
-    }
-    
-    // Fetch info about liked movies from user document
-    fetch(`/user/${userID}`)
-      .then(response => response.json())
-      .then(user => {
-        const likedMovieIDs = user.likedMovies || [];
-        
-        if (likedMovieIDs.length === 0) {
-          console.log("No favorites found");
-          return []; 
+    try {
+        const userResponse = await fetch(`/user/${userID}`);
+        if (!userResponse.ok) {
+            throw new Error(await userResponse.text());
         }
-  
-        // Use the liked movie ID's to get full movie objects
-        return fetch(`/movies?ids=${likedMovieIDs.join(',')}`);
-      })
-      .then(response => response.json())
-      .then(fullMovies => {
 
-        console.log("Full movie data:", fullMovies);
-        renderFavorites(fullMovies);
-      })
-      .catch(error => console.error("Error:", error));
+        const userData = await userResponse.json();
+        
+        // Update local storage
+        localStorage.setItem(`userData_${userID}`, JSON.stringify({
+            likedMovies: userData.likedMovies || [],
+            dislikedMovies: userData.dislikedMovies || []
+        }));
+
+        if (userData.likedMovies?.length > 0) {
+            const moviesResponse = await fetch(`/movies?ids=${userData.likedMovies.join(',')}`);
+            const fullMovies = await moviesResponse.json();
+            renderFavorites(fullMovies);
+        } else {
+            document.querySelector('.movies-container').innerHTML = 
+                '<p>No favorite movies found. Start liking some!</p>';
+        }
+    } catch (error) {
+        console.error("Error loading favorites:", error);
+        alert("Failed to load favorites. Please try again.");
     }
+}

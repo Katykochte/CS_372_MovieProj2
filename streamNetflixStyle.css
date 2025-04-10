@@ -205,3 +205,21 @@ Works with streamNetflixWeb.html
 .like-dislike-buttons img:hover {
   transform: scale(1.2);
 }
+
+/* Highlight for liked movies */
+.like-btn.liked {
+  filter: invert(75%) sepia(90%) saturate(500%) hue-rotate(80deg);
+}
+
+/* Dislike button (red) */
+.dislike-btn.disliked {
+  filter: invert(25%) sepia(100%) saturate(2000%) hue-rotate(340deg);
+}
+
+/* Animation for feedback */
+.like-btn, .dislike-btn {
+  transition: transform 0.2s, filter 0.3s;
+}
+.like-btn:active, .dislike-btn:active {
+  transform: scale(1.3);
+}

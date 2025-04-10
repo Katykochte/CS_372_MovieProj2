@@ -79,15 +79,14 @@ app.post("/checkNewUser", upload.none(), async (req, res) => {
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieCollection");
 
-        // Check if the user already exists
         const existUser = await collection.findOne({ user });
-
         if (existUser) {
-            return res.json({ status: "badLogin", 
-                              message: "User already exists. Please login instead." });
+            return res.json({ 
+                status: "badLogin", 
+                message: "User already exists. Please login instead." 
+            });
         }
 
-        // User does not exist, add new user
         const salt = generateSalt();
         const hashedPassword = hashPassword(password, salt);
         const result = await collection.insertOne({ 
@@ -95,17 +94,25 @@ app.post("/checkNewUser", upload.none(), async (req, res) => {
             password: hashedPassword, 
             salt, 
             failedAttempts: 0,
-            role: "viewer", // Default role for new users
+            role: "viewer",
             likedMovies: [],
             dislikedMovies: []
         });
 
-        console.log(`New user added with _id: ${result.insertedId}`);
-        return res.json({ status: "newUser", message: `New user created: ${user}` });
+        // Return the string version of the ObjectId
+        return res.json({ 
+            status: "newUser", 
+            message: `New user created: ${user}`,
+            userID: result.insertedId.toString(), // Convert to string
+            role: "viewer"
+        });
 
     } catch (error) {
         console.error("Error creating new user:", error);
-        return res.status(500).json({ status: "error", message: "Error creating new user" });
+        return res.status(500).json({ 
+            status: "error", 
+            message: "Error creating new user" 
+        });
     }
 });
 
@@ -233,12 +240,27 @@ app.get('/api/movies', async (req, res) => {
         
         const movies = await collection.find(query)
             .sort({ sortTitle: 1 })
+            .project({
+                _id: 1,
+                title: 1,
+                genre: 1,
+                youtubeId: 1,
+                totalLikes: 1,
+                totalDislikes: 1
+            })
             .toArray();
             
+        if (!movies || !Array.isArray(movies)) {
+            throw new Error("Invalid movies data");
+        }
+        
         res.json(movies);
     } catch (error) {
         console.error("Error fetching movies:", error);
-        res.status(500).json({ error: "Failed to fetch movies" });
+        res.status(500).json({ 
+            error: "Failed to fetch movies",
+            details: error.message 
+        });
     }
 });
 
@@ -297,129 +319,113 @@ app.delete('/api/movies/:id', async (req, res) => {
 });
 
 app.post('/updateLikeDislike', async (req, res) => {
-    const {movieID, action, userID} = req.body;
+    const { movieID, action, userID } = req.body;
 
     try {
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieGallery");
         const userCollection = database.collection("streamMovieCollection");
 
-        const movie = await collection.findOne({ _id: new ObjectId(movieID) });
-        if(!movie) {
-            return res.status(404).send('Movie not found');
-        }
-
+        // Verify user exists
         const user = await userCollection.findOne({ _id: new ObjectId(userID) });
-        if (!user) {
-            return res.status(404).send("User not found");
-        }
+        if (!user) return res.status(404).json({ error: "User not found" });
 
-        if (action == 'like') {
-            if (await userCollection.findOne({
-                _id: new ObjectId(userID),
-                likedMovies: new ObjectId(movieID)
-            })){
-                // If they have already liked it do nothing
-            } else if (await userCollection.findOne({
-                _id: new ObjectId(userID),
-                dislikedMovies: new ObjectId(movieID)
-            })) {
-                // If they previously disliked the movie remove one dislike, add one like
-                // and move it from their dislikedMovies to their likedMovies
-                await collection.updateOne(
-                    { _id: new ObjectId(movieID) },
-                    { 
-                        $inc: { 
-                            totalLikes: 1,
-                            totalDislikes: -1 
-                        } 
-                    }
-                );
-                await userCollection.updateOne(
-                    { _id: new ObjectId(userID) },
-                    {
-                        $pull: { dislikedMovies: new ObjectId(movieID) } ,
-                        $addToSet: { likedMovies: new ObjectId(movieID) } 
-                    }
-                );
-            }else {
-                //If they haven't liked or disliked it before
-                //add a like to the movie and add it to the users
-                // likedMovies
-                await collection.updateOne(
-                    { _id: new ObjectId(movieID) },
-                    { $inc: { totalLikes: 1 } }
-                );
-                await userCollection.updateOne(
-                    { _id: new ObjectId(userID) },
-                    { $addToSet: { likedMovies: new ObjectId(movieID) } }
-                );
+        // Verify movie exists
+        const movie = await collection.findOne({ _id: new ObjectId(movieID) });
+        if (!movie) return res.status(404).json({ error: "Movie not found" });
+
+        // Prepare update operations
+        let movieUpdate = {};
+        let userUpdate = {};
+        const movieObjectId = new ObjectId(movieID);
+        const userLikes = user.likedMovies || [];
+        const userDislikes = user.dislikedMovies || [];
+
+        if (action === 'like') {
+            if (userLikes.some(id => id.equals(movieObjectId))) {
+                // Already liked - remove like
+                movieUpdate = { $inc: { totalLikes: -1 } };
+                userUpdate = { $pull: { likedMovies: movieObjectId } };
+            } else {
+                // Add like
+                movieUpdate = { $inc: { totalLikes: 1 } };
+                userUpdate = { $addToSet: { likedMovies: movieObjectId } };
+                // Remove from dislikes if present
+                if (userDislikes.some(id => id.equals(movieObjectId))) {
+                    movieUpdate.$inc.totalDislikes = -1;
+                    userUpdate.$pull = { dislikedMovies: movieObjectId };
+                }
             }
-        } else if (action == 'dislike') {
-            if (await userCollection.findOne({
-                _id: new ObjectId(userID),
-                dislikedMovies: new ObjectId(movieID)
-            })){
-                // If its already in their dislikedMovies do nothing
-            } else if (await userCollection.findOne({
-                _id: new ObjectId(userID),
-                likedMovies: new ObjectId(movieID)
-            })) {
-                // If the movies is in likedMovies, remove one like add one dislike
-                // move the video from users likedMovies, to dislikedMovies
-                await collection.updateOne(
-                    { _id: new ObjectId(movieID) },
-                    { 
-                        $inc: { 
-                            totalLikes: -1,
-                            totalDislikes: 1 
-                        } 
-                    }
-                );
-                await userCollection.updateOne(
-                    { _id: new ObjectId(userID) },
-                    {
-                        $pull: { likedMovies: new ObjectId(movieID) } ,
-                        $addToSet: { dislikedMovies: new ObjectId(movieID) } 
-                    }
-                );
-            }else {
-                // If they haven't interacted with the video yet
-                // add it to their dislikedMovies and add one dislike to the video
-                await collection.updateOne(
-                    { _id: new ObjectId(movieID) },
-                    { $inc: { totalDislikes: 1 } }
-                );
-                await userCollection.updateOne(
-                    { _id: new ObjectId(userID) },
-                    { $addToSet: { dislikedMovies: new ObjectId(movieID) } }
-                );
+        } else if (action === 'dislike') {
+            if (userDislikes.some(id => id.equals(movieObjectId))) {
+                // Already disliked - remove dislike
+                movieUpdate = { $inc: { totalDislikes: -1 } };
+                userUpdate = { $pull: { dislikedMovies: movieObjectId } };
+            } else {
+                // Add dislike
+                movieUpdate = { $inc: { totalDislikes: 1 } };
+                userUpdate = { $addToSet: { dislikedMovies: movieObjectId } };
+                // Remove from likes if present
+                if (userLikes.some(id => id.equals(movieObjectId))) {
+                    movieUpdate.$inc.totalLikes = -1;
+                    userUpdate.$pull = { likedMovies: movieObjectId };
+                }
             }
         }
 
-        res.status(200).json({ message: `Movie ${action}d succesfully!`});
+        // Execute updates
+        await Promise.all([
+            collection.updateOne({ _id: new ObjectId(movieID) }, movieUpdate),
+            userCollection.updateOne({ _id: new ObjectId(userID) }, userUpdate)
+        ]);
+
+        // Return fresh user data
+        const updatedUser = await userCollection.findOne({ _id: new ObjectId(userID) });
+        res.json({
+            likedMovies: updatedUser.likedMovies || [],
+            dislikedMovies: updatedUser.dislikedMovies || []
+        });
+
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Error updating like/dislike');
+        console.error("Error in /updateLikeDislike:", error);
+        res.status(500).json({ error: "Failed to update preference" });
     }
-
 });
 
 app.get('/user/:id', async (req, res) => {
-    const userID = req.params.id;  
     try {
+        const userID = req.params.id;
         const database = client.db("streamMovieDb");
         const userCollection = database.collection("streamMovieCollection");
 
-        const user = await userCollection.findOne({ _id: new ObjectId(userID) });
-        if (!user) {
-            return res.status(404).send("User not found");
+        // Validate ID format
+        if (!ObjectId.isValid(userID)) {
+            return res.status(400).json({ error: "Invalid user ID format" });
         }
 
+        const user = await userCollection.findOne({ 
+            _id: new ObjectId(userID) 
+        }, {
+            projection: {
+                password: 0,
+                salt: 0,
+                failedAttempts: 0
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Ensure likedMovies/dislikedMovies are arrays
+        user.likedMovies = user.likedMovies || [];
+        user.dislikedMovies = user.dislikedMovies || [];
+        
         res.json(user);
-        } catch (error) {
-            console.error(error);
-            res.status(500).send('Error retrieving user data');
+
+    } catch (error) {
+        console.error("Error retrieving user data:", error);
+        res.status(500).json({ error: "Server error" });
     }
 });
 
