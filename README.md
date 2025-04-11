@@ -9,9 +9,12 @@ Edit the section that says "User credentials" and it will spit out a hashed pass
 Add a new collection to the streamMovieDb called streamMovieGallery (this will hold all the url/info for the youtube videos)
 These also need to be manually added but the easiest way to do so is by logging into the content editor 
 
-## Known Issues
+### Add another folder inside /public called "uploads" this is where the thumbnails uploaded will go to
 
-(*** Functionality not needed for current user stories batch ***)
-- Swapping Likes and Dislikes occasionally fails to increment one or the other, i.e. if a user has liked a video and goes back and changes that to a dislike, the like will be removed from the counter associated with the video however the dislikes will sometimes not be incremented, and vice versa, although the logic for this operation is in place.("/updateLikeDislike" inside streamNetflixServer.js) 
+
+## Known Issues
+Two Functions rn are longer then 30 lines. They are noted/labeled clearly as such. 
+
+No story issues right now as of 4/11/25 
 
 
