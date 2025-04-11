@@ -13,6 +13,7 @@ const crypto = require("crypto");
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 app.use(express.static(__dirname)); 
 
 const port = 6543;
@@ -20,7 +21,8 @@ const uri = "mongodb://localhost:27017"; // MongoDB URI
 const client = new MongoClient(uri);
 
 // Set up multer to handle form data
-const upload = multer(); 
+const fs = require('fs');
+const upload = multer({ dest: 'public/uploads/' }); // Update multer configuration 
 
 // Connect to MongoDB when the server starts
 async function connectDB() {
@@ -224,7 +226,7 @@ app.listen(port, () => {
 // Get all movies sorted alphabetically
 app.get('/api/movies', async (req, res) => {
     try {
-        const { search } = req.query;
+        const { search, ids } = req.query;
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieGallery");
         
@@ -236,6 +238,9 @@ app.get('/api/movies', async (req, res) => {
                     { genre: { $regex: search, $options: 'i' } }
                 ]
             };
+        } else if (ids) {
+            const movieIDs = ids.split(',').map(id => new ObjectId(id));
+            query = { _id: { $in: movieIDs } };
         }
         
         const movies = await collection.find(query)
@@ -245,14 +250,13 @@ app.get('/api/movies', async (req, res) => {
                 title: 1,
                 genre: 1,
                 youtubeId: 1,
+                thumbnail: 1,
                 totalLikes: 1,
                 totalDislikes: 1
             })
             .toArray();
             
-        if (!movies || !Array.isArray(movies)) {
-            throw new Error("Invalid movies data");
-        }
+        if (!movies) throw new Error("Invalid movies data");
         
         res.json(movies);
     } catch (error) {
@@ -263,9 +267,8 @@ app.get('/api/movies', async (req, res) => {
         });
     }
 });
-
 // Add a new movie (editor only)
-app.post('/api/movies', upload.none(), async (req, res) => {
+app.post('/api/movies', upload.single('thumbnail'), async (req, res) => {
     try {
         const { title, genre, youtubeId } = req.body;
         
@@ -277,6 +280,18 @@ app.post('/api/movies', upload.none(), async (req, res) => {
             return res.status(400).json({ error: "Invalid YouTube ID format" });
         }
         
+        // Handle thumbnail upload
+        let thumbnailPath = '';
+        if (req.file) {
+            const fileExt = path.extname(req.file.originalname);
+            const newFileName = `${req.file.filename}${fileExt}`;
+            const newPath = path.join(__dirname, 'public', 'uploads', newFileName);
+            
+            fs.renameSync(req.file.path, newPath);
+            thumbnailPath = `/uploads/${newFileName}`;
+            console.log("Thumbnail saved at:", thumbnailPath);
+        }
+        
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieGallery");
         
@@ -285,6 +300,7 @@ app.post('/api/movies', upload.none(), async (req, res) => {
             sortTitle: title.toLowerCase().replace(/^the /, ''),
             genre,
             youtubeId,
+            thumbnail: thumbnailPath,
             createdAt: new Date(),
             totalLikes: 0,
             totalDislikes: 0
@@ -398,7 +414,6 @@ app.get('/user/:id', async (req, res) => {
         const database = client.db("streamMovieDb");
         const userCollection = database.collection("streamMovieCollection");
 
-        // Validate ID format
         if (!ObjectId.isValid(userID)) {
             return res.status(400).json({ error: "Invalid user ID format" });
         }
@@ -417,9 +432,9 @@ app.get('/user/:id', async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
-        // Ensure likedMovies/dislikedMovies are arrays
-        user.likedMovies = user.likedMovies || [];
-        user.dislikedMovies = user.dislikedMovies || [];
+        // Convert ObjectIds to strings for client-side
+        user.likedMovies = (user.likedMovies || []).map(id => id.toString());
+        user.dislikedMovies = (user.dislikedMovies || []).map(id => id.toString());
         
         res.json(user);
 

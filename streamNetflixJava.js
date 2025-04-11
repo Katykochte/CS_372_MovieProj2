@@ -167,20 +167,33 @@ let currentUserRole = 'viewer'; // This will be set during login
 
 async function loadMovies(searchTerm = '') {
     try {
+        const userID = localStorage.getItem("userID");
+        if (!userID) {
+            console.error("No user ID found");
+            return;
+        }
+
+        // Fetch user data first
+        const userResponse = await fetch(`/user/${userID}`);
+        if (!userResponse.ok) throw new Error("Failed to fetch user data");
+        const userData = await userResponse.json();
+
+        // Update local storage with fresh user data
+        localStorage.setItem(`userData_${userID}`, JSON.stringify({
+            likedMovies: userData.likedMovies || [],
+            dislikedMovies: userData.dislikedMovies || []
+        }));
+
+        // Then fetch movies
         const url = searchTerm 
             ? `/api/movies?search=${encodeURIComponent(searchTerm)}`
             : '/api/movies';
+        const moviesResponse = await fetch(url);
+        if (!moviesResponse.ok) throw new Error(`HTTP error! status: ${moviesResponse.status}`);
         
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const movies = await response.json();
-        if (!Array.isArray(movies)) {
-            throw new Error("Invalid movies data received");
-        }
-        
+        const movies = await moviesResponse.json();
+        if (!Array.isArray(movies)) throw new Error("Invalid movies data received");
+
         renderMovies(movies, searchTerm);
         
         if (currentUserRole === 'content editor') {
@@ -189,7 +202,6 @@ async function loadMovies(searchTerm = '') {
     } catch (error) {
         console.error("Error loading movies:", error);
         alert("Failed to load movies. Please try again later.");
-        // Clear the movies container on error
         document.querySelectorAll('.movies-container').forEach(container => {
             container.innerHTML = '<p>Error loading movies. Please refresh the page.</p>';
         });
@@ -208,53 +220,61 @@ function renderMovies(movies, searchTerm = '') {
         .filter(page => page !== null);
     
     pages.forEach(page => {
-        // Clear existing content but preserve search
+        const container = page.querySelector('.movies-container') || document.createElement('div');
+        container.className = 'movies-container';
+        container.innerHTML = '';
+        
+        if (movies.length === 0) {
+            container.innerHTML = '<p>No movies found. ' + 
+                (searchTerm ? 'Try a different search.' : 'Check back later.') + '</p>';
+        } else {
+            for (let i = 0; i < movies.length; i += 4) {
+                const rowMovies = movies.slice(i, i + 4);
+                container.innerHTML += createMovieRow(rowMovies);
+            }
+        }
+        
+        // Preserve existing page structure
         const header = page.querySelector('h1');
         const searchContainer = page.querySelector('.search-container');
-        const existingContainer = page.querySelector('.movies-container') || document.createElement('div');
-        
-        existingContainer.className = 'movies-container';
-        existingContainer.innerHTML = '';
+        const editorControls = page.querySelector('.editor-controls');
         
         page.innerHTML = '';
         if (header) page.appendChild(header);
+        if (editorControls) page.appendChild(editorControls);
         if (searchContainer) page.appendChild(searchContainer);
-        page.appendChild(existingContainer);
-        
-        if (movies.length === 0) {
-            existingContainer.innerHTML = '<p>No movies found. ' + 
-                (searchTerm ? 'Try a different search.' : 'Check back later.') + '</p>';
-            return;
-        }
-        
-        // Render movies in rows of 4
-        for (let i = 0; i < movies.length; i += 4) {
-            const rowMovies = movies.slice(i, i + 4);
-            existingContainer.innerHTML += createMovieRow(rowMovies);
-        }
+        page.appendChild(container);
     });
     
     addLikeDislikeListeners();
+    
+    if (document.getElementById('editorPage').style.display === 'block') {
+        addEditorControls();
+    }
 }
 
 function renderFavorites(movies) {
     const favoritesPage = document.getElementById("favoritesPage");
     if (!favoritesPage) return;
 
-    const container = favoritesPage.querySelector('.movies-container');
-    if (!container) return;
-
-    container.innerHTML = ''; 
+    const container = favoritesPage.querySelector('.movies-container') || document.createElement('div');
+    container.className = 'movies-container';
+    container.innerHTML = '';
 
     if (movies.length === 0) {
         container.innerHTML = '<p>No favorite movies found. Start liking some!</p>';
-        return;
+    } else {
+        for (let i = 0; i < movies.length; i += 4) {
+            const rowMovies = movies.slice(i, i + 4);
+            container.innerHTML += createMovieRow(rowMovies);
+        }
     }
 
-    for (let i = 0; i < movies.length; i += 4) {
-        const rowMovies = movies.slice(i, i + 4);
-        container.innerHTML += createMovieRow(rowMovies);
-    }
+    // Preserve existing page structure
+    const header = favoritesPage.querySelector('h1');
+    favoritesPage.innerHTML = '';
+    if (header) favoritesPage.appendChild(header);
+    favoritesPage.appendChild(container);
 
     addLikeDislikeListeners();
 }
@@ -263,6 +283,10 @@ function createMovieRow(movies) {
     try {
         const userID = localStorage.getItem("userID");
         const userData = JSON.parse(localStorage.getItem(`userData_${userID}`) || {});
+        
+        // Convert liked/disliked movies to strings for comparison
+        const likedMovies = (userData.likedMovies || []).map(id => id.toString());
+        const dislikedMovies = (userData.dislikedMovies || []).map(id => id.toString());
 
         let rowHtml = '<div class="row">';
         movies.forEach(movie => {
@@ -271,16 +295,35 @@ function createMovieRow(movies) {
                 return;
             }
 
-            const isLiked = (userData.likedMovies || []).some(id => 
-                id.toString() === movie._id.toString());
-            const isDisliked = (userData.dislikedMovies || []).some(id => 
-                id.toString() === movie._id.toString());
+            const movieId = movie._id.toString();
+            const isLiked = likedMovies.includes(movieId);
+            const isDisliked = dislikedMovies.includes(movieId);
+
+            // Debugging
+            console.log(`Movie: ${movie.title}`, {
+                id: movieId,
+                isLiked,
+                isDisliked,
+                likedMovies,
+                dislikedMovies
+            });
+
+            const thumbnail = movie.thumbnail 
+                ? (movie.thumbnail.startsWith('http') ? movie.thumbnail : `http://localhost:6543${movie.thumbnail}`)
+                : `https://img.youtube.com/vi/${movie.youtubeId}/hqdefault.jpg`;
 
             rowHtml += `
             <div class="column">
-                <div class="tooltip" data-movie-id="${movie._id}">
-                    <iframe src="https://www.youtube.com/embed/${movie.youtubeId}" 
-                        frameborder="0" allowfullscreen></iframe>
+                <div class="movie-card" data-movie-id="${movie._id}">
+                    <div class="thumbnail-container" onclick="openMoviePlayer('${movie.youtubeId}')">
+                        <img src="${thumbnail}" alt="${movie.title}" class="movie-thumbnail" 
+                             onerror="this.src='https://img.youtube.com/vi/${movie.youtubeId}/hqdefault.jpg'">
+                        <div class="play-icon">▶</div>
+                    </div>
+                    <div class="movie-info">
+                        <h3>${movie.title}</h3>
+                        <p>${movie.genre}</p>
+                    </div>
                     <div class="like-dislike-buttons">
                         <img src="/public/assets/thumbs-up.svg" 
                              class="like-btn ${isLiked ? 'liked' : ''}" 
@@ -299,49 +342,84 @@ function createMovieRow(movies) {
     }
 }
 
+function openMoviePlayer(youtubeId) {
+    const playerModal = document.getElementById('moviePlayerModal');
+    const playerFrame = document.getElementById('moviePlayerFrame');
+    
+    if (playerModal && playerFrame) {
+        playerFrame.src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1`;
+        playerModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // Prevent scrolling behind the modal
+    }
+}
+
+function closeMoviePlayer() {
+    const playerModal = document.getElementById('moviePlayerModal');
+    const playerFrame = document.getElementById('moviePlayerFrame');
+    
+    if (playerModal && playerFrame) {
+        playerFrame.src = '';
+        playerModal.style.display = 'none';
+        document.body.style.overflow = 'auto'; // Re-enable scrolling
+    }
+}
 
 function addEditorControls() {
     const editorPage = document.getElementById('editorPage');
     if (!editorPage) return;
     
-    // Add movie form
-    const formHtml = `
-        <div class="editor-controls">
-            <h3>Movie Management</h3>
-
-            <div class="add-movie-form">
-            <input type="text" id="newMovieTitle" placeholder="Movie Title" required>
-            <input type="text" id="newMovieGenre" placeholder="Genre (e.g., Action, Comedy)" required>
-            <input type="url" id="newMovieYoutubeUrl" 
-                placeholder="Paste YouTube URL"
-                pattern="^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+" 
-                required>
-            <button onclick="handleAddMovie()">Add Movie</button>
-            <small class="url-hint">Example: https://www.youtube.com/watch?v=dQw4w9WgXcQ</small>
+    // Only add the form if it doesn't exist
+    if (!document.getElementById('addMovieForm')) {
+        const formHtml = `
+            <div class="editor-controls">
+                <h3>Movie Management</h3>
+                <form id="addMovieForm" enctype="multipart/form-data">
+                    <div class="add-movie-form">
+                        <input type="text" id="newMovieTitle" placeholder="Movie Title" required>
+                        <input type="text" id="newMovieGenre" placeholder="Genre (e.g., Action, Comedy)" required>
+                        <input type="url" id="newMovieYoutubeUrl" 
+                            placeholder="Paste YouTube URL"
+                            pattern="^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+" 
+                            required>
+                        <input type="file" id="newMovieThumbnail" accept="image/*" required>
+                        <button type="submit">Add Movie</button>
+                        <small class="url-hint">Example: https://www.youtube.com/watch?v=dQw4w9WgXcQ</small>
+                    </div>
+                </form>
             </div>
-
-        </div>
-    `;
-    editorPage.insertAdjacentHTML('afterbegin', formHtml);
+        `;
+        editorPage.insertAdjacentHTML('afterbegin', formHtml);
+        
+        document.getElementById('addMovieForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await handleAddMovie();
+        });
+    }
     
-    // Add delete buttons to each movie
-    document.querySelectorAll('.tooltip').forEach(tooltip => {
-        const movieId = tooltip.dataset.movieId;
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-movie';
-        deleteBtn.innerHTML = '×';
-        deleteBtn.onclick = () => handleDeleteMovie(movieId);
-        tooltip.appendChild(deleteBtn);
+    // Add delete buttons to each movie card
+    document.querySelectorAll('.movie-card').forEach(card => {
+        // Only add if it doesn't already have one
+        if (!card.querySelector('.delete-movie')) {
+            const movieId = card.dataset.movieId;
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-movie';
+            deleteBtn.innerHTML = '×';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation(); // Prevent triggering the movie player
+                handleDeleteMovie(movieId);
+            };
+            card.appendChild(deleteBtn);
+        }
     });
 }
 
-// Replace handleAddMovie with this new version
 async function handleAddMovie() {
     const title = document.getElementById('newMovieTitle').value.trim();
     const genre = document.getElementById('newMovieGenre').value.trim();
     const youtubeUrl = document.getElementById('newMovieYoutubeUrl').value.trim();
+    const thumbnailFile = document.getElementById('newMovieThumbnail').files[0];
     
-    if (!title || !genre || !youtubeUrl) {
+    if (!title || !genre || !youtubeUrl || !thumbnailFile) {
         alert('Please fill all fields');
         return;
     }
@@ -353,10 +431,15 @@ async function handleAddMovie() {
     }
 
     try {
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('genre', genre);
+        formData.append('youtubeId', youtubeId);
+        formData.append('thumbnail', thumbnailFile);
+        
         const response = await fetch('/api/movies', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, genre, youtubeId })
+            body: formData
         });
         
         if (!response.ok) throw new Error('Failed to add movie');
@@ -366,6 +449,7 @@ async function handleAddMovie() {
         document.getElementById('newMovieTitle').value = '';
         document.getElementById('newMovieGenre').value = '';
         document.getElementById('newMovieYoutubeUrl').value = '';
+        document.getElementById('newMovieThumbnail').value = '';
     } catch (error) {
         console.error("Error adding movie:", error);
         alert("Failed to add movie. Please try again.");
@@ -469,7 +553,7 @@ async function handleLikeDislike(movieID, action) {
         const userResponse = await fetch(`/user/${userID}`);
         const userData = await userResponse.json();
 
-        // Update localStorage
+        // Update localStorage with fresh data
         localStorage.setItem(`userData_${userID}`, JSON.stringify({
             likedMovies: userData.likedMovies || [],
             dislikedMovies: userData.dislikedMovies || []
@@ -480,7 +564,7 @@ async function handleLikeDislike(movieID, action) {
         if (activePage === "favoritesPage") {
             showFavorites();
         } else {
-            loadMovies();
+            loadMovies(); // Reload movies to get fresh like/dislike states
         }
 
     } catch (error) {
@@ -500,21 +584,26 @@ async function showFavorites() {
 
     try {
         const userResponse = await fetch(`/user/${userID}`);
-        if (!userResponse.ok) {
-            throw new Error(await userResponse.text());
-        }
-
-        const userData = await userResponse.json();
+        if (!userResponse.ok) throw new Error(await userResponse.text());
         
-        // Update local storage
+        const userData = await userResponse.json();
         localStorage.setItem(`userData_${userID}`, JSON.stringify({
             likedMovies: userData.likedMovies || [],
             dislikedMovies: userData.dislikedMovies || []
         }));
 
         if (userData.likedMovies?.length > 0) {
-            const moviesResponse = await fetch(`/movies?ids=${userData.likedMovies.join(',')}`);
-            const fullMovies = await moviesResponse.json();
+            const moviesResponse = await fetch(`/api/movies?ids=${userData.likedMovies.join(',')}`);
+            if (!moviesResponse.ok) throw new Error("Failed to fetch favorite movies");
+            
+            let fullMovies = await moviesResponse.json();
+            fullMovies = fullMovies.map(movie => {
+                if (!movie.thumbnail && movie.youtubeId) {
+                    movie.thumbnail = `https://img.youtube.com/vi/${movie.youtubeId}/hqdefault.jpg`;
+                }
+                return movie;
+            });
+            
             renderFavorites(fullMovies);
         } else {
             document.querySelector('.movies-container').innerHTML = 
