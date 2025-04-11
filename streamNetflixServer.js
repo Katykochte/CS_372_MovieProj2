@@ -86,34 +86,26 @@ app.post("/checkNewUser", upload.none(), async (req, res) => {
             return res.json({ 
                 status: "badLogin", 
                 message: "User already exists. Please login instead." 
-            });
-        }
+            }); }
 
         const salt = generateSalt();
         const hashedPassword = hashPassword(password, salt);
         const result = await collection.insertOne({ 
-            user, 
-            password: hashedPassword, 
-            salt, 
-            failedAttempts: 0,
-            role: "viewer",
-            likedMovies: [],
-            dislikedMovies: []
-        });
+            user, password: hashedPassword, 
+            salt, failedAttempts: 0,
+            role: "viewer", likedMovies: [],
+            dislikedMovies: [] });
 
         // Return the string version of the ObjectId
         return res.json({ 
-            status: "newUser", 
-            message: `New user created: ${user}`,
-            userID: result.insertedId.toString(), // Convert to string
-            role: "viewer"
+            status: "newUser", message: `New user created: ${user}`,
+            userID: result.insertedId.toString(), role: "viewer"
         });
 
     } catch (error) {
         console.error("Error creating new user:", error);
         return res.status(500).json({ 
-            status: "error", 
-            message: "Error creating new user" 
+            status: "error", message: "Error creating new user" 
         });
     }
 });
@@ -233,27 +225,19 @@ app.get('/api/movies', async (req, res) => {
         let query = {};
         if (search) {
             query = { 
-                $or: [
-                    { title: { $regex: search, $options: 'i' } },
-                    { genre: { $regex: search, $options: 'i' } }
-                ]
-            };
+                $or: [ { title: { $regex: search, $options: 'i' } },
+                       { genre: { $regex: search, $options: 'i' } } ] };
         } else if (ids) {
             const movieIDs = ids.split(',').map(id => new ObjectId(id));
-            query = { _id: { $in: movieIDs } };
-        }
+            query = { _id: { $in: movieIDs } }; }
         
         const movies = await collection.find(query)
             .sort({ sortTitle: 1 })
             .project({
-                _id: 1,
-                title: 1,
-                genre: 1,
-                youtubeId: 1,
-                thumbnail: 1,
-                totalLikes: 1,
-                totalDislikes: 1
-            })
+                _id: 1, title: 1,
+                genre: 1, youtubeId: 1,
+                thumbnail: 1, totalLikes: 1,
+                totalDislikes: 1 })
             .toArray();
             
         if (!movies) throw new Error("Invalid movies data");
@@ -263,22 +247,20 @@ app.get('/api/movies', async (req, res) => {
         console.error("Error fetching movies:", error);
         res.status(500).json({ 
             error: "Failed to fetch movies",
-            details: error.message 
-        });
+            details: error.message });
     }
 });
+
 // Add a new movie (editor only)
 app.post('/api/movies', upload.single('thumbnail'), async (req, res) => {
     try {
         const { title, genre, youtubeId } = req.body;
         
         if (!title || !genre || !youtubeId) {
-            return res.status(400).json({ error: "Title, genre and YouTube ID are required" });
-        }
+            return res.status(400).json({ error: "Title, genre and YouTube ID are required" }); }
         
         if (!/^[a-zA-Z0-9_-]{11}$/.test(youtubeId)) {
-            return res.status(400).json({ error: "Invalid YouTube ID format" });
-        }
+            return res.status(400).json({ error: "Invalid YouTube ID format" }); }
         
         // Handle thumbnail upload
         let thumbnailPath = '';
@@ -289,22 +271,17 @@ app.post('/api/movies', upload.single('thumbnail'), async (req, res) => {
             
             fs.renameSync(req.file.path, newPath);
             thumbnailPath = `/uploads/${newFileName}`;
-            console.log("Thumbnail saved at:", thumbnailPath);
-        }
+            console.log("Thumbnail saved at:", thumbnailPath); }
         
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieGallery");
         
         const newMovie = {
-            title,
-            sortTitle: title.toLowerCase().replace(/^the /, ''),
-            genre,
-            youtubeId,
+            title, sortTitle: title.toLowerCase().replace(/^the /, ''),
+            genre, youtubeId,
             thumbnail: thumbnailPath,
             createdAt: new Date(),
-            totalLikes: 0,
-            totalDislikes: 0
-        };
+            totalLikes: 0, totalDislikes: 0 };
         
         const result = await collection.insertOne(newMovie);
         res.status(201).json({ ...newMovie, _id: result.insertedId });
@@ -334,6 +311,8 @@ app.delete('/api/movies/:id', async (req, res) => {
     }
 });
 
+// Manages Likes/Dislike actively
+// STILL TOO LONG
 app.post('/updateLikeDislike', async (req, res) => {
     const { movieID, action, userID } = req.body;
 
@@ -408,6 +387,7 @@ app.post('/updateLikeDislike', async (req, res) => {
     }
 });
 
+// Collects User info
 app.get('/user/:id', async (req, res) => {
     try {
         const userID = req.params.id;
@@ -415,22 +395,16 @@ app.get('/user/:id', async (req, res) => {
         const userCollection = database.collection("streamMovieCollection");
 
         if (!ObjectId.isValid(userID)) {
-            return res.status(400).json({ error: "Invalid user ID format" });
-        }
+            return res.status(400).json({ error: "Invalid user ID format" }); }
 
         const user = await userCollection.findOne({ 
-            _id: new ObjectId(userID) 
-        }, {
-            projection: {
-                password: 0,
-                salt: 0,
-                failedAttempts: 0
-            }
-        });
+            _id: new ObjectId(userID) }, 
+            { projection: {
+                password: 0, salt: 0,
+                failedAttempts: 0 } });
 
         if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
+            return res.status(404).json({ error: "User not found" }); }
 
         // Convert ObjectIds to strings for client-side
         user.likedMovies = (user.likedMovies || []).map(id => id.toString());
@@ -441,22 +415,5 @@ app.get('/user/:id', async (req, res) => {
     } catch (error) {
         console.error("Error retrieving user data:", error);
         res.status(500).json({ error: "Server error" });
-    }
-});
-
-app.get('/movies', async (req, res) => {
-    try {
-        const movieIDs = req.query.ids.split(',').map(id => new ObjectId(id));
-        const database = client.db("streamMovieDb");
-        const moviesCollection = database.collection("streamMovieGallery"); // Replace with your actual collection name
-
-        const movies = await moviesCollection.find({
-            _id: { $in: movieIDs } // Find all movies where _id is in the array
-        }).toArray();
-
-        res.json(movies);
-    } catch (error) {
-        console.error("Error fetching movies:", error);
-        res.status(500).send("Server error");
     }
 });

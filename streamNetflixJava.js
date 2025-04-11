@@ -3,7 +3,10 @@
 // Holds all login and password functionalities 
 // Works with streamNetflixServer.js + streamNetflixWeb.html
 
-// Top tab control
+///////////////////////////////////
+// Top tabs controls
+///////////////////////////////////
+
 // Update the openLoginTab function
 function openLoginTab() {
     // Hide all possible pages
@@ -18,6 +21,7 @@ function openLoginTab() {
     document.getElementById("galleryButton").style.display = "none";
 }
 
+// 
 function openFavoritesTab() {
     // Hide all possible pages
     document.getElementById("favoritesPage").style.display = "block";
@@ -33,7 +37,31 @@ function openGalleryTab() {
     document.getElementById("galleryPage").style.display = "block";
     document.getElementById("marketingPage").style.display = "none";
     document.getElementById("editorPage").style.display = "none";
+    
+    // Load movies and add editor controls if user is an editor
+    loadMovies();
+    
+    // Add editor controls if the user is a content editor
+    if (currentUserRole === 'content editor') {
+        addEditorControls();
+    }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Hide gallery and favorites tabs initially
+    document.getElementById("favoritesButton").style.display = "none";
+    document.getElementById("galleryButton").style.display = "none";
+    
+    // Only load movies if we're already logged in (page refresh)
+    if (document.getElementById('galleryPage').style.display === 'block' ||
+        document.getElementById('marketingPage').style.display === 'block' ||
+        document.getElementById('editorPage').style.display === 'block') {
+        // Show gallery and favorites tabs if already logged in
+        document.getElementById("favoritesButton").style.display = "block";
+        document.getElementById("galleryButton").style.display = "block";
+        loadMovies();
+    }
+});
 
 ///////////////////////////////////
 // Login Functions
@@ -164,14 +192,17 @@ document
 ///////////////////////////////////
 
 let currentUserRole = 'viewer'; // This will be set during login
+const DEBUG_MODE = false; // Set to `true` during development
+
+function getYouTubeThumbnail(youtubeId, customThumbnail = '') {
+    return customThumbnail && !customThumbnail.startsWith('http') 
+      ? `http://localhost:6543${customThumbnail}` 
+      : `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+}
 
 async function loadMovies(searchTerm = '') {
     try {
         const userID = localStorage.getItem("userID");
-        if (!userID) {
-            console.error("No user ID found");
-            return;
-        }
 
         // Fetch user data first
         const userResponse = await fetch(`/user/${userID}`);
@@ -181,8 +212,7 @@ async function loadMovies(searchTerm = '') {
         // Update local storage with fresh user data
         localStorage.setItem(`userData_${userID}`, JSON.stringify({
             likedMovies: userData.likedMovies || [],
-            dislikedMovies: userData.dislikedMovies || []
-        }));
+            dislikedMovies: userData.dislikedMovies || [] }));
 
         // Then fetch movies
         const url = searchTerm 
@@ -197,22 +227,16 @@ async function loadMovies(searchTerm = '') {
         renderMovies(movies, searchTerm);
         
         if (currentUserRole === 'content editor') {
-            addEditorControls();
-        }
+            addEditorControls(); }
+
     } catch (error) {
         console.error("Error loading movies:", error);
         alert("Failed to load movies. Please try again later.");
         document.querySelectorAll('.movies-container').forEach(container => {
-            container.innerHTML = '<p>Error loading movies. Please refresh the page.</p>';
-        });
+            container.innerHTML = '<p>Error loading movies. Please refresh the page.</p>'; });
     }
 }
 
-// Update searchMovies to use server-side search
-function searchMovies() {
-    const searchTerm = document.getElementById('searchInput').value.trim();
-    loadMovies(searchTerm);
-}
 
 function renderMovies(movies, searchTerm = '') {
     const pages = ['galleryPage', 'marketingPage', 'editorPage']
@@ -225,32 +249,29 @@ function renderMovies(movies, searchTerm = '') {
         container.innerHTML = '';
         
         if (movies.length === 0) {
-            container.innerHTML = '<p>No movies found. ' + 
-                (searchTerm ? 'Try a different search.' : 'Check back later.') + '</p>';
+            container.innerHTML = '<p>No movies found. ' + (searchTerm ? 'Not found.' : 'Check back later.') + '</p>';
         } else {
             for (let i = 0; i < movies.length; i += 4) {
                 const rowMovies = movies.slice(i, i + 4);
-                container.innerHTML += createMovieRow(rowMovies);
-            }
+                container.innerHTML += createMovieRow(rowMovies); }
         }
         
         // Preserve existing page structure
         const header = page.querySelector('h1');
         const searchContainer = page.querySelector('.search-container');
-        const editorControls = page.querySelector('.editor-controls');
         
         page.innerHTML = '';
         if (header) page.appendChild(header);
-        if (editorControls) page.appendChild(editorControls);
         if (searchContainer) page.appendChild(searchContainer);
+        
+        // Add editor controls if the user is a content editor and on the gallery page
+        if (currentUserRole === 'content editor' && page.id === 'galleryPage') {
+            addEditorControls(); }
+        
         page.appendChild(container);
     });
     
     addLikeDislikeListeners();
-    
-    if (document.getElementById('editorPage').style.display === 'block') {
-        addEditorControls();
-    }
 }
 
 function renderFavorites(movies) {
@@ -266,8 +287,7 @@ function renderFavorites(movies) {
     } else {
         for (let i = 0; i < movies.length; i += 4) {
             const rowMovies = movies.slice(i, i + 4);
-            container.innerHTML += createMovieRow(rowMovies);
-        }
+            container.innerHTML += createMovieRow(rowMovies);}
     }
 
     // Preserve existing page structure
@@ -279,6 +299,7 @@ function renderFavorites(movies) {
     addLikeDislikeListeners();
 }
 
+// STILL TOO LONG FIX ME
 function createMovieRow(movies) {
     try {
         const userID = localStorage.getItem("userID");
@@ -299,18 +320,16 @@ function createMovieRow(movies) {
             const isLiked = likedMovies.includes(movieId);
             const isDisliked = dislikedMovies.includes(movieId);
 
-            // Debugging
-            console.log(`Movie: ${movie.title}`, {
-                id: movieId,
-                isLiked,
-                isDisliked,
-                likedMovies,
-                dislikedMovies
-            });
+            // Debugging if needed
+            if (DEBUG_MODE) {
+                console.log(`Movie: ${movie.title}`, { 
+                  id: movieId, 
+                  isLiked, 
+                  isDisliked 
+                });
+              }
 
-            const thumbnail = movie.thumbnail 
-                ? (movie.thumbnail.startsWith('http') ? movie.thumbnail : `http://localhost:6543${movie.thumbnail}`)
-                : `https://img.youtube.com/vi/${movie.youtubeId}/hqdefault.jpg`;
+            const thumbnail = getYouTubeThumbnail(movie.youtubeId, movie.thumbnail);
 
             rowHtml += `
             <div class="column">
@@ -342,9 +361,15 @@ function createMovieRow(movies) {
     }
 }
 
+///////////////////////////////////
+// Movie Playing Functions
+///////////////////////////////////
+
+// const varaibles for the two below functions for DRYness
+const playerModal = document.getElementById('moviePlayerModal');
+const playerFrame = document.getElementById('moviePlayerFrame');
+
 function openMoviePlayer(youtubeId) {
-    const playerModal = document.getElementById('moviePlayerModal');
-    const playerFrame = document.getElementById('moviePlayerFrame');
     
     if (playerModal && playerFrame) {
         playerFrame.src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1`;
@@ -354,9 +379,6 @@ function openMoviePlayer(youtubeId) {
 }
 
 function closeMoviePlayer() {
-    const playerModal = document.getElementById('moviePlayerModal');
-    const playerFrame = document.getElementById('moviePlayerFrame');
-    
     if (playerModal && playerFrame) {
         playerFrame.src = '';
         playerModal.style.display = 'none';
@@ -364,13 +386,12 @@ function closeMoviePlayer() {
     }
 }
 
-function addEditorControls() {
-    const editorPage = document.getElementById('editorPage');
-    if (!editorPage) return;
-    
-    // Only add the form if it doesn't exist
-    if (!document.getElementById('addMovieForm')) {
-        const formHtml = `
+///////////////////////////////////
+// Marketing M and Content E Functions
+///////////////////////////////////
+
+// For addEditorControls() function
+const formHtml = `
             <div class="editor-controls">
                 <h3>Movie Management</h3>
                 <form id="addMovieForm" enctype="multipart/form-data">
@@ -388,28 +409,31 @@ function addEditorControls() {
                 </form>
             </div>
         `;
-        editorPage.insertAdjacentHTML('afterbegin', formHtml);
-        
+
+function addEditorControls() {
+    const galleryPage = document.getElementById('galleryPage');
+    if (!galleryPage) return;
+    
+    // Only add the form if it doesn't exist
+    if (!document.getElementById('addMovieForm')) {
+        galleryPage.insertAdjacentHTML('afterbegin', formHtml);
+    
         document.getElementById('addMovieForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            await handleAddMovie();
-        });
+            await handleAddMovie(); });
     }
     
     // Add delete buttons to each movie card
     document.querySelectorAll('.movie-card').forEach(card => {
-        // Only add if it doesn't already have one
         if (!card.querySelector('.delete-movie')) {
             const movieId = card.dataset.movieId;
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-movie';
             deleteBtn.innerHTML = '×';
             deleteBtn.onclick = (e) => {
-                e.stopPropagation(); // Prevent triggering the movie player
-                handleDeleteMovie(movieId);
-            };
-            card.appendChild(deleteBtn);
-        }
+                e.stopPropagation();
+                handleDeleteMovie(movieId); };
+            card.appendChild(deleteBtn); }
     });
 }
 
@@ -421,14 +445,12 @@ async function handleAddMovie() {
     
     if (!title || !genre || !youtubeUrl || !thumbnailFile) {
         alert('Please fill all fields');
-        return;
-    }
+        return; }
 
     const youtubeId = extractYouTubeId(youtubeUrl);
     if (!youtubeId) {
         alert('Invalid YouTube URL. Please use a valid YouTube link.');
-        return;
-    }
+        return; }
 
     try {
         const formData = new FormData();
@@ -437,14 +459,13 @@ async function handleAddMovie() {
         formData.append('youtubeId', youtubeId);
         formData.append('thumbnail', thumbnailFile);
         
-        const response = await fetch('/api/movies', {
-            method: 'POST',
-            body: formData
-        });
+        const response = await fetch('/api/movies', 
+            { method: 'POST', body: formData });
         
         if (!response.ok) throw new Error('Failed to add movie');
         
-        loadMovies(); // Refresh the list
+        // Refresh the list
+        loadMovies();
         // Clear form
         document.getElementById('newMovieTitle').value = '';
         document.getElementById('newMovieGenre').value = '';
@@ -474,7 +495,6 @@ async function handleDeleteMovie(movieId) {
     }
 }
 
-
 function extractYouTubeId(url) {
     // Handle various YouTube URL formats
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -482,26 +502,9 @@ function extractYouTubeId(url) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Hide gallery and favorites tabs initially
-    document.getElementById("favoritesButton").style.display = "none";
-    document.getElementById("galleryButton").style.display = "none";
-    
-    // Only load movies if we're already logged in (page refresh)
-    if (document.getElementById('galleryPage').style.display === 'block' ||
-        document.getElementById('marketingPage').style.display === 'block' ||
-        document.getElementById('editorPage').style.display === 'block') {
-        // Show gallery and favorites tabs if already logged in
-        document.getElementById("favoritesButton").style.display = "block";
-        document.getElementById("galleryButton").style.display = "block";
-        loadMovies();
-    }
-});
-
 ///////////////////////////////////
 // Search Functions
 ///////////////////////////////////
-
 
 // Add event listener for Enter key
 document.addEventListener('DOMContentLoaded', () => {
@@ -515,6 +518,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Update searchMovies to use server-side search
+function searchMovies() {
+    const searchTerm = document.getElementById('searchInput').value.trim();
+    loadMovies(searchTerm);
+}
+
+
+///////////////////////////////////
+// Likes/Dislike Functions
+///////////////////////////////////
+
+// 
 function addLikeDislikeListeners() {
     document.querySelectorAll('.like-btn').forEach(button => {
         button.addEventListener('click', function() {
@@ -531,20 +546,16 @@ function addLikeDislikeListeners() {
     });
 }
 
+// 
 async function handleLikeDislike(movieID, action) {
     const userID = localStorage.getItem("userID");
-    if (!userID) return;
 
     try {
         // Update server first
         const response = await fetch('/updateLikeDislike', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                movieID, 
-                action, 
-                userID 
-            })
+            body: JSON.stringify({ movieID, action, userID })
         });
 
         if (!response.ok) throw new Error('Failed to update like/dislike');
@@ -555,8 +566,7 @@ async function handleLikeDislike(movieID, action) {
 
         // Update localStorage with fresh data
         localStorage.setItem(`userData_${userID}`, JSON.stringify({
-            likedMovies: userData.likedMovies || [],
-            dislikedMovies: userData.dislikedMovies || []
+            likedMovies: userData.likedMovies || [], dislikedMovies: userData.dislikedMovies || []
         }));
 
         // Force UI refresh
@@ -572,15 +582,10 @@ async function handleLikeDislike(movieID, action) {
         alert("Failed to update preference. Please try again.");
     }
 }
-  
 
-// Fetch Favorites 
+// Fetch Favorites list for users 
 async function showFavorites() {
     const userID = localStorage.getItem("userID");
-    if (!userID) {
-        alert("Please login to view favorites");
-        return;
-    }
 
     try {
         const userResponse = await fetch(`/user/${userID}`);
@@ -588,8 +593,7 @@ async function showFavorites() {
         
         const userData = await userResponse.json();
         localStorage.setItem(`userData_${userID}`, JSON.stringify({
-            likedMovies: userData.likedMovies || [],
-            dislikedMovies: userData.dislikedMovies || []
+            likedMovies: userData.likedMovies || [], dislikedMovies: userData.dislikedMovies || []
         }));
 
         if (userData.likedMovies?.length > 0) {
@@ -598,16 +602,13 @@ async function showFavorites() {
             
             let fullMovies = await moviesResponse.json();
             fullMovies = fullMovies.map(movie => {
-                if (!movie.thumbnail && movie.youtubeId) {
-                    movie.thumbnail = `https://img.youtube.com/vi/${movie.youtubeId}/hqdefault.jpg`;
-                }
-                return movie;
-            });
+                if (!movie.thumbnail && movie.youtubeId) { 
+                    movie.thumbnail = `https://img.youtube.com/vi/${movie.youtubeId}/hqdefault.jpg`;}
+                return movie; });
             
             renderFavorites(fullMovies);
         } else {
-            document.querySelector('.movies-container').innerHTML = 
-                '<p>No favorite movies found. Start liking some!</p>';
+            document.querySelector('.movies-container').innerHTML = '<p>No favorite movies yet!</p>';
         }
     } catch (error) {
         console.error("Error loading favorites:", error);

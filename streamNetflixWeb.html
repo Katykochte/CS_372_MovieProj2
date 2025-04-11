@@ -5,132 +5,125 @@
                 streamNetflixStyle.css
                 streamNetflixserver.js -->
 
-                <!DOCTYPE html>
-                <html lang="en">
-                
-                <head>
-                    <title> Fairbanks Film Streaming </title>
-                    <link rel="stylesheet" type="text/css" href="streamNetflixStyle.css"> 
-                </head>
-                
-                <body>
-                
-                    <header>
-                        <!-- Header Content -->
-                            <h1 style="font-size:40px;">
-                                <b style="color:rgb(35, 97, 146);">
-                                    Fairbanks Film Streaming
-                                </b>
-                            </h1>
-                            <div class="tab">
-                                <button class="tablinks" name="loginTab" id="loginButton" onclick="openLoginTab()" style="color:white;">
-                                    Login
-                                </button>
-                                <button class="tablinks" name="favoritesTab" id="favoritesButton" onclick="openFavoritesTab()" style="color: white; display: none;">
-                                    Favorites
-                                </button>
-                                <button class="tablinks" name="galleryTab" id="galleryButton" onclick="openGalleryTab()" style="color: white; display: none;">
-                                    Gallery
-                                </button>
-                            </div>
-                
-                            <br>
-                    </header>
-                
-                    <!-- Division to submit login -->
-                    <div id="loginPage" name="loginPage" style="display:none;">
-                        <form id="nameForm" name="nameForm">
-                            <label for="user"> User: </label>
-                            <input type="text" id="user" name="user"><br>
-                            <label for="password"> Password: </label>
-                            <input type="text" id="password" name="password"><br>
-                            <button type="button" onclick="submitForm(event, 'login')" name="loginBt" id="loginBt">Login</button>
-                            <button type="button" onclick="submitForm(event, 'newUser')" name="newUserBt" id="newUserBt">Create New User</button>
-                        </form>
-                        <div id="resetPwPage" name="resetPwPage">
-                            <form id="resetPwForm" name="resetPwForm" style="display:none;">
-                                <br>
-                                <input type="email" id="email" name="email"
-                                    placeholder="Type email" required>
-                                <button type="submit" name="resetPwBT" id="resetPwBT">
-                                    Reset Password </button>
-                            </form>
-                            <button name="forgotPwBT" id="forgotPwBT"> Forgot Password? </button>
-                        </div> 
-                    </div>
-                
-                    <div id="favoritesPage" name="favoritesPage" style="display: none;">
-                        <h1 style="font-size:35px;">
-                            <b style="color:rgb(37, 106, 146);">
-                                Your Favorites
-                            </b>
-                        </h1>
-                        <div class="movies-container"></div>
-                    </div>
-                
-                    <!-- Division for Viewer content -->
-                    <div id="galleryPage" name="galleryPage" style="display:none;">
-                        <h1 style="font-size:35px;">
-                            <b style="color:rgb(37, 106, 146);">
-                                Browse our gallery collection below:
-                            </b>
-                        </h1>
-                
-                        <div class="search-container">
-                            <input type="text" id="searchInput" placeholder="Search movies by title...">
-                            <button onclick="searchMovies()">Search</button>
-                        </div>
-                        <!-- Movies will be inserted here by JavaScript -->
-                    </div>
-                
-                    <!-- Marketing Manager Page -->
-                    <div id="marketingPage" name="marketingPage" style="display:none;">
-                        <h1 style="font-size:35px; color:rgb(35, 97, 146);">
-                            Marketing Manager Dashboard
-                        </h1>
-                        <h1 style="font-size:35px;">
-                            <b style="color:rgb(37, 106, 146);">
-                                Browse our gallery collection below:
-                            </b>
-                        </h1>
-                        <div class="search-container">
-                            <input type="text" id="searchInput" placeholder="Search movies by title...">
-                            <button onclick="searchMovies()">Search</button>
-                        </div>
-                        <!-- Movies will be inserted here by JavaScript -->
-                    </div>
-                
-                    <!-- Content Editor Page -->
-                    <div id="editorPage" name="editorPage" style="display:none;">
-                        <h1 style="font-size:35px; color:rgb(35, 97, 146);">
-                            Content Editor Dashboard
-                        </h1>
-                        <div class="editor-controls">
-                            <h3>Movie Management</h3>
-                        </div>
-                        <h1 style="font-size:35px;">
-                            <b style="color:rgb(37, 106, 146);">
-                                Browse our gallery collection below:
-                            </b>
-                        </h1>
-                        <div class="search-container">
-                            <input type="text" id="searchInput" placeholder="Search movies by title...">
-                            <button onclick="searchMovies()">Search</button>
-                        </div>
-                    </div>
-                
-                    <div id="moviePlayerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;">
-                        <div style="width: 90%; max-width: 1200px; height: 80%; display: flex; flex-direction: column;">
-                            <iframe id="moviePlayerFrame" style="width: 100%; height: 100%; border: none;"></iframe>
-                            <button onclick="closeMoviePlayer()" style="margin-top: 20px; padding: 10px 20px; background: #236192; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; align-self: center;">
-                                Close Player
-                            </button>
-                        </div>
-                    </div>
-                            
-                    <!-- Link to external JavaScript file -->
-                    <script src="streamNetflixJava.js"></script>
-                
-                </body>
-                
-                </html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title> Fairbanks Film Streaming </title>
+    <link rel="stylesheet" type="text/css" href="streamNetflixStyle.css"> 
+</head>
+
+<body>
+
+    <header>
+        <!-- Header Content -->
+            <h1 style="font-size:40px;">
+                <b style="color:rgb(35, 97, 146);">
+                    Fairbanks Film Streaming
+                </b>
+            </h1>
+            <div class="tab">
+                <button class="tablinks" name="loginTab" id="loginButton" onclick="openLoginTab()" style="color:white;">
+                    Login
+                </button>
+                <button class="tablinks" name="favoritesTab" id="favoritesButton" onclick="openFavoritesTab()" style="color: white; display: none;">
+                    Favorites
+                </button>
+                <button class="tablinks" name="galleryTab" id="galleryButton" onclick="openGalleryTab()" style="color: white; display: none;">
+                    Gallery
+                </button>
+            </div>
+
+            <br>
+    </header>
+
+    <!-- Division to submit login -->
+    <div id="loginPage" name="loginPage" style="display:none;">
+        <form id="nameForm" name="nameForm">
+            <label for="user"> User: </label>
+            <input type="text" id="user" name="user"><br>
+            <label for="password"> Password: </label>
+            <input type="text" id="password" name="password"><br>
+            <button type="button" onclick="submitForm(event, 'login')" name="loginBt" id="loginBt">Login</button>
+            <button type="button" onclick="submitForm(event, 'newUser')" name="newUserBt" id="newUserBt">Create New User</button>
+        </form>
+        <div id="resetPwPage" name="resetPwPage">
+            <form id="resetPwForm" name="resetPwForm" style="display:none;">
+                <br>
+                <input type="email" id="email" name="email"
+                    placeholder="Type email" required>
+                <button type="submit" name="resetPwBT" id="resetPwBT">
+                    Reset Password </button>
+            </form>
+            <button name="forgotPwBT" id="forgotPwBT"> Forgot Password? </button>
+        </div> 
+    </div>
+
+    <div id="favoritesPage" name="favoritesPage" style="display: none;">
+        <h1 style="font-size:35px;">
+            <b style="color:rgb(37, 106, 146);">
+                Your Favorites
+            </b>
+        </h1>
+        <div class="movies-container"></div>
+    </div>
+
+    <!-- Division for Viewer content -->
+    <div id="galleryPage" name="galleryPage" style="display:none;">
+        <h1 style="font-size:35px;">
+            <b style="color:rgb(37, 106, 146);">
+                Browse our gallery collection below:
+            </b>
+        </h1>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search movies by title...">
+            <button onclick="searchMovies()">Search</button>
+        </div>
+        <!-- Movies will be inserted here by JavaScript -->
+    </div>
+
+    <!-- Marketing Manager Page -->
+    <div id="marketingPage" name="marketingPage" style="display:none;">
+        <h1 style="font-size:35px; color:rgb(35, 97, 146);">
+            Marketing Manager Dashboard
+        </h1>
+        <h1 style="font-size:35px;">
+            <b style="color:rgb(37, 106, 146);">
+                Browse our gallery collection below:
+            </b>
+        </h1>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search movies by title...">
+            <button onclick="searchMovies()">Search</button>
+        </div>
+        <!-- Movies will be inserted here by JavaScript -->
+    </div>
+
+    <!-- Content Editor Page (simplified) -->
+    <div id="editorPage" name="editorPage" style="display:none;">
+        <h1 style="font-size:35px; color:rgb(35, 97, 146);">
+            Content Editor Dashboard
+        </h1>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search movies by title...">
+            <button onclick="searchMovies()">Search</button>
+        </div>
+        <div class="movies-container"></div>
+    </div>
+
+    <div id="moviePlayerModal">
+        <div style="width: 90%; max-width: 1200px; height: 80%; display: flex; flex-direction: column;">
+            <iframe id="moviePlayerFrame" style="width: 100%; height: 100%; border: none;"></iframe>
+            <button onclick="closeMoviePlayer()">
+                Close Player
+            </button>
+        </div>
+    </div>
+            
+    <!-- Link to external JavaScript file -->
+    <script src="streamNetflixJava.js"></script>
+
+</body>
+
+</html>
