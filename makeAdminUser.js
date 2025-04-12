@@ -4,6 +4,9 @@
 // Otherwise add whichever usersnames you want to test with
 // roles can be "marketing manager" or "content editor" only those or it won't work when login checking
 
+// Updated admin user generator for Movie Streaming Site
+// Remember passwords must be 8+ chars with: 1 special, 1 capital, 1 lowercase, and 1 number
+
 const crypto = require('crypto');
 
 // Function to generate random salt
@@ -18,22 +21,38 @@ function hashPassword(password, salt) {
     return hash.digest('hex');
 }
 
-// User credentials (Change these to whatever you want for testing !!!)
-const username = "martketingm@movie.com";
-const password = "MaMa123!"; // The plain text password
+// Configuration (Change these values as needed)
+const userConfig = {
+    username: "contente2@movie.com",  // Must be email format
+    password: "CoEd123!",                  // 8+ chars with special, upper, lower, number
+    role: "content editor",             // "marketing manager" or "content editor"
+    likedMovies: [],                       // Will be populated with ObjectIds later
+    dislikedMovies: []                     // Will be populated with ObjectIds later
+};
+
+// Validate role
+if (!["marketing manager", "content editor"].includes(userConfig.role)) {
+    console.error("Error: Role must be either 'marketing manager' or 'content editor'");
+    process.exit(1);
+}
 
 // Generate salt and hash
 const salt = generateSalt();
-const hashedPassword = hashPassword(password, salt);
+const hashedPassword = hashPassword(userConfig.password, salt);
 
-console.log("User:", username);
+console.log("=== User Generation Complete ===");
+console.log("Username:", userConfig.username);
+console.log("Role:", userConfig.role);
 console.log("Salt:", salt);
 console.log("Hashed Password:", hashedPassword);
-console.log("\nMongoDB insert command:");
+
+console.log("\n=== MongoDB Insert Command ===");
 console.log(`db.streamMovieCollection.insertOne({
-    user: "${username}",
+    user: "${userConfig.username}",
     password: "${hashedPassword}",
     salt: "${salt}",
     failedAttempts: 0,
-    role: "marketing manager"
+    role: "${userConfig.role}",
+    likedMovies: [],
+    dislikedMovies: []
 })`);

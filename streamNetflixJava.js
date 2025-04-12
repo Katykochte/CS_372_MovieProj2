@@ -347,19 +347,28 @@ function createMovieRow(movies) {
 
             const thumbnail = getYouTubeThumbnail(movie.youtubeId, movie.thumbnail);
 
-            // Marketing manager specific elements
+            // Stats visible only to marketing managers
             const statsHtml = currentUserRole === 'marketing manager' ? 
                 `<div class="movie-stats">
                     <span>Likes: ${movie.totalLikes || 0}</span>
                     <span>Dislikes: ${movie.totalDislikes || 0}</span>
                 </div>` : '';
 
-            const commentHtml = currentUserRole === 'marketing manager' ? 
-                `<div class="marketing-comment">
+            // Comment section - editable for marketing managers, view-only for content editors
+            let commentHtml = '';
+            if (currentUserRole === 'marketing manager') {
+                commentHtml = `
+                <div class="marketing-comment">
                     <textarea class="comment-box" data-movie-id="${movie._id}" 
                         placeholder="Add comment for editors...">${movie.marketingComments || ''}</textarea>
                     <button class="save-comment" data-movie-id="${movie._id}">Save</button>
-                </div>` : '';
+                </div>`;
+            } else if (currentUserRole === 'content editor' && movie.marketingComments) {
+                commentHtml = `
+                <div class="marketing-comment">
+                    <div class="comment-view">${movie.marketingComments}</div>
+                </div>`;
+            }
 
             rowHtml += `
             <div class="column">
@@ -383,6 +392,7 @@ function createMovieRow(movies) {
                              data-movie-id="${movie._id}">
                     </div>
                     ${commentHtml}
+                    ${currentUserRole === 'content editor' ? `<div class="delete-movie" onclick="handleDeleteMovie('${movie._id}')">×</div>` : ''}
                 </div>
             </div>`;
         });

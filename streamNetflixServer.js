@@ -237,7 +237,8 @@ app.get('/api/movies', async (req, res) => {
                 _id: 1, title: 1,
                 genre: 1, youtubeId: 1,
                 thumbnail: 1, totalLikes: 1,
-                totalDislikes: 1, marketingComments: 1 // Add this
+                totalDislikes: 1, 
+                marketingComments: 1 
             })
             .toArray();
             

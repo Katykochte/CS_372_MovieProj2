@@ -270,8 +270,8 @@ Works with streamNetflixWeb.html
   position: absolute;
   top: 10px;
   right: 10px;
-  background: #ff0000;
-  color: white;
+  background: #ffcd00;
+  color: rgb(35, 97, 146);
   border: none;
   border-radius: 50%;
   width: 25px;
@@ -281,6 +281,12 @@ Works with streamNetflixWeb.html
   z-index: 10;
   opacity: 0;
   transition: opacity 0.3s ease;
+  display: flex;           /* Add this */
+  justify-content: center; /* Add this */
+  align-items: center;     /* Add this */
+  padding: 0;              /* Add this to ensure no extra spacing */
+  line-height: 1;          /* Add this to prevent vertical misalignment */
+  font-family: Arial, sans-serif; /* Ensures consistent cross-browser rendering */
 }
 
 /* Movie Player Modal Styles */
@@ -361,4 +367,24 @@ Works with streamNetflixWeb.html
 
 .save-comment:hover {
   background-color: #1a4a75;
+}
+
+/* View-only comment style for content editors */
+.comment-view {
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  border-left: 3px solid #236192;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-top: 10px;
+}
+
+/* Make the comment section more distinct */
+.marketing-comment {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  border: 1px solid #ddd;
 }
