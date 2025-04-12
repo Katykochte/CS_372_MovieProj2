@@ -16,6 +16,6 @@ These also need to be manually added but the easiest way to do so is by logging 
 ## Known Issues
 Two Functions rn are longer then 30 lines. They are noted/labeled clearly as such. 
 
-No story issues right now as of 4/11/25 
+No story issues right now as of 4/12/25 
 
 
