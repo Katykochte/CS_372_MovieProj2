@@ -215,7 +215,7 @@ app.listen(port, () => {
 // Movie Gallery API Endpoints
 ///////////////////////////////////
 
-// Get all movies sorted alphabetically
+// Get all movies sorted alphabetically with needed info
 app.get('/api/movies', async (req, res) => {
     try {
         const { search, ids } = req.query;
@@ -237,10 +237,11 @@ app.get('/api/movies', async (req, res) => {
                 _id: 1, title: 1,
                 genre: 1, youtubeId: 1,
                 thumbnail: 1, totalLikes: 1,
-                totalDislikes: 1 })
+                totalDislikes: 1, marketingComments: 1 // Add this
+            })
             .toArray();
             
-        if (!movies) throw new Error("Invalid movies data");
+        if (!movies) throw new Error("Invalid movies data received");
         
         res.json(movies);
     } catch (error) {
@@ -415,5 +416,30 @@ app.get('/user/:id', async (req, res) => {
     } catch (error) {
         console.error("Error retrieving user data:", error);
         res.status(500).json({ error: "Server error" });
+    }
+});
+
+// Handle comments
+app.post('/api/movies/:id/comments', async (req, res) => {
+    try {
+        const movieId = req.params.id;
+        const { comment } = req.body;
+        
+        if (!ObjectId.isValid(movieId)) {
+            return res.status(400).json({ error: "Invalid movie ID format" });
+        }
+
+        const database = client.db("streamMovieDb");
+        const collection = database.collection("streamMovieGallery");
+        
+        await collection.updateOne(
+            { _id: new ObjectId(movieId) },
+            { $set: { marketingComments: comment } }
+        );
+        
+        res.json({ status: "success", message: "Comment saved" });
+    } catch (error) {
+        console.error("Error saving comment:", error);
+        res.status(500).json({ error: "Failed to save comment" });
     }
 });

@@ -38,30 +38,58 @@ function openGalleryTab() {
     document.getElementById("marketingPage").style.display = "none";
     document.getElementById("editorPage").style.display = "none";
     
-    // Load movies and add editor controls if user is an editor
-    loadMovies();
-    
-    // Add editor controls if the user is a content editor
+    // Set the dashboard title based on role
+    const dashboardTitle = document.querySelector('#galleryPage .dashboard-title');
     if (currentUserRole === 'content editor') {
+        dashboardTitle.textContent = 'Content Editor Dashboard';
+        dashboardTitle.style.display = 'block';
         addEditorControls();
+    } 
+    else if (currentUserRole === 'marketing manager') {
+        dashboardTitle.textContent = 'Marketing Manager Dashboard';
+        dashboardTitle.style.display = 'block';
+    } 
+    else {
+        dashboardTitle.textContent = 'Browse our gallery collection below:';
+        dashboardTitle.style.color = 'rgb(37, 106, 146)'; // Viewer color
     }
+    
+    loadMovies();
 }
 
+// Listener for clicks
 document.addEventListener('DOMContentLoaded', () => {
+    // First listener's content
     // Hide gallery and favorites tabs initially
     document.getElementById("favoritesButton").style.display = "none";
     document.getElementById("galleryButton").style.display = "none";
     
     // Only load movies if we're already logged in (page refresh)
-    if (document.getElementById('galleryPage').style.display === 'block' ||
-        document.getElementById('marketingPage').style.display === 'block' ||
-        document.getElementById('editorPage').style.display === 'block') {
+    if (document.getElementById('galleryPage').style.display === 'block') {
         // Show gallery and favorites tabs if already logged in
         document.getElementById("favoritesButton").style.display = "block";
         document.getElementById("galleryButton").style.display = "block";
         loadMovies();
     }
+
+    // Second listener's content
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchMovies();
+            }
+        });
+    }
+    
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('save-comment')) {
+            const movieId = e.target.getAttribute('data-movie-id');
+            saveMarketingComment(movieId);
+        }
+    });
 });
+
 
 ///////////////////////////////////
 // Login Functions
@@ -115,10 +143,8 @@ async function submitForm(event, action) {
     try {
         const endpoint = action === 'login' ? "checkLogin" : "checkNewUser";
         const response = await fetch(`http://localhost:6543/${endpoint}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user, password })
-        });
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user, password }) });
 
         const result = await response.json();
 
@@ -129,17 +155,20 @@ async function submitForm(event, action) {
             
             // Initialize user data
             localStorage.setItem(`userData_${result.userID}`, JSON.stringify({
-                likedMovies: [],
-                dislikedMovies: []
-            }));
-
+                likedMovies: [], dislikedMovies: [] }));
+    
             // Update UI and load movies
             document.getElementById("loginPage").style.display = "none";
-            document.getElementById(currentUserRole === "marketing manager" ? 
-                "marketingPage" : 
-                currentUserRole === "content editor" ? 
-                "editorPage" : 
-                "galleryPage").style.display = "block";
+            document.getElementById("galleryPage").style.display = "block"; // Always use galleryPage
+            
+            // Set the dashboard title immediately
+            const dashboardTitle = document.querySelector('#galleryPage .dashboard-title');
+            if (currentUserRole === 'content editor') {
+                dashboardTitle.textContent = 'Content Editor Dashboard'; } 
+            else if (currentUserRole === 'marketing manager') {
+                dashboardTitle.textContent = 'Marketing Manager Dashboard'; } 
+            else {
+                dashboardTitle.textContent = 'Browse our gallery collection below:'; }
             
             document.getElementById("favoritesButton").style.display = "block";
             document.getElementById("galleryButton").style.display = "block";
@@ -237,39 +266,36 @@ async function loadMovies(searchTerm = '') {
     }
 }
 
-
 function renderMovies(movies, searchTerm = '') {
-    const pages = ['galleryPage', 'marketingPage', 'editorPage']
-        .map(id => document.getElementById(id))
-        .filter(page => page !== null);
+    const container = document.querySelector('#galleryPage .movies-container') || 
+                     document.createElement('div');
+    container.className = 'movies-container';
+    container.innerHTML = '';
     
-    pages.forEach(page => {
-        const container = page.querySelector('.movies-container') || document.createElement('div');
-        container.className = 'movies-container';
-        container.innerHTML = '';
-        
-        if (movies.length === 0) {
-            container.innerHTML = '<p>No movies found. ' + (searchTerm ? 'Not found.' : 'Check back later.') + '</p>';
-        } else {
-            for (let i = 0; i < movies.length; i += 4) {
-                const rowMovies = movies.slice(i, i + 4);
-                container.innerHTML += createMovieRow(rowMovies); }
+    if (movies.length === 0) {
+        container.innerHTML = '<p>No movies found. ' + (searchTerm ? 'Not found.' : 'Check back later.') + '</p>';
+    } else {
+        for (let i = 0; i < movies.length; i += 4) {
+            const rowMovies = movies.slice(i, i + 4);
+            container.innerHTML += createMovieRow(rowMovies);
         }
-        
-        // Preserve existing page structure
-        const header = page.querySelector('h1');
-        const searchContainer = page.querySelector('.search-container');
-        
-        page.innerHTML = '';
-        if (header) page.appendChild(header);
-        if (searchContainer) page.appendChild(searchContainer);
-        
-        // Add editor controls if the user is a content editor and on the gallery page
-        if (currentUserRole === 'content editor' && page.id === 'galleryPage') {
-            addEditorControls(); }
-        
-        page.appendChild(container);
-    });
+    }
+    
+    // Get the existing page structure
+    const galleryPage = document.getElementById('galleryPage');
+    const header = galleryPage.querySelector('.dashboard-title');
+    const searchContainer = galleryPage.querySelector('.search-container');
+    
+    // Clear and rebuild the page structure
+    galleryPage.innerHTML = '';
+    if (header) galleryPage.appendChild(header);
+    if (searchContainer) galleryPage.appendChild(searchContainer);
+    galleryPage.appendChild(container);
+    
+    // Add editor controls if the user is a content editor
+    if (currentUserRole === 'content editor') {
+        addEditorControls();
+    }
     
     addLikeDislikeListeners();
 }
@@ -305,7 +331,6 @@ function createMovieRow(movies) {
         const userID = localStorage.getItem("userID");
         const userData = JSON.parse(localStorage.getItem(`userData_${userID}`) || {});
         
-        // Convert liked/disliked movies to strings for comparison
         const likedMovies = (userData.likedMovies || []).map(id => id.toString());
         const dislikedMovies = (userData.dislikedMovies || []).map(id => id.toString());
 
@@ -320,16 +345,21 @@ function createMovieRow(movies) {
             const isLiked = likedMovies.includes(movieId);
             const isDisliked = dislikedMovies.includes(movieId);
 
-            // Debugging if needed
-            if (DEBUG_MODE) {
-                console.log(`Movie: ${movie.title}`, { 
-                  id: movieId, 
-                  isLiked, 
-                  isDisliked 
-                });
-              }
-
             const thumbnail = getYouTubeThumbnail(movie.youtubeId, movie.thumbnail);
+
+            // Marketing manager specific elements
+            const statsHtml = currentUserRole === 'marketing manager' ? 
+                `<div class="movie-stats">
+                    <span>Likes: ${movie.totalLikes || 0}</span>
+                    <span>Dislikes: ${movie.totalDislikes || 0}</span>
+                </div>` : '';
+
+            const commentHtml = currentUserRole === 'marketing manager' ? 
+                `<div class="marketing-comment">
+                    <textarea class="comment-box" data-movie-id="${movie._id}" 
+                        placeholder="Add comment for editors...">${movie.marketingComments || ''}</textarea>
+                    <button class="save-comment" data-movie-id="${movie._id}">Save</button>
+                </div>` : '';
 
             rowHtml += `
             <div class="column">
@@ -342,6 +372,7 @@ function createMovieRow(movies) {
                     <div class="movie-info">
                         <h3>${movie.title}</h3>
                         <p>${movie.genre}</p>
+                        ${statsHtml}
                     </div>
                     <div class="like-dislike-buttons">
                         <img src="/public/assets/thumbs-up.svg" 
@@ -351,6 +382,7 @@ function createMovieRow(movies) {
                              class="dislike-btn ${isDisliked ? 'disliked' : ''}" 
                              data-movie-id="${movie._id}">
                     </div>
+                    ${commentHtml}
                 </div>
             </div>`;
         });
@@ -502,21 +534,29 @@ function extractYouTubeId(url) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
+// Handle comment saving
+async function saveMarketingComment(movieId) {
+    const comment = document.querySelector(`.comment-box[data-movie-id="${movieId}"]`).value;
+    
+    try {
+        const response = await fetch(`/api/movies/${movieId}/comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comment })
+        });
+
+        if (!response.ok) throw new Error('Failed to save comment');
+        
+        alert('Comment saved successfully');
+    } catch (error) {
+        console.error("Error saving comment:", error);
+        alert("Failed to save comment. Please try again.");
+    }
+}
+
 ///////////////////////////////////
 // Search Functions
 ///////////////////////////////////
-
-// Add event listener for Enter key
-document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                searchMovies();
-            }
-        });
-    }
-});
 
 // Update searchMovies to use server-side search
 function searchMovies() {
