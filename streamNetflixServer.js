@@ -2,6 +2,13 @@
 // CS 372 Movie Streaming Site (Server)
 // Holds all ther server side functions
 
+// Katy Kochte, Cleary Bettisworth, Sabian Cavazos
+// CS 372 Movie Streaming Site (Server)
+// Holds all the server side functions
+
+/////////////////////////////////
+// Imports and Setup
+/////////////////////////////////
 const { MongoClient, ObjectId } = require("mongodb");
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -9,22 +16,34 @@ const multer = require("multer");
 const path = require("path");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const fs = require("fs");
 
+/////////////////////////////////
+// Configurations
+/////////////////////////////////
+const port = 6543;
+const uri = "mongodb://localhost:27017"; // MongoDB URI
 
+// Multer configuration
+const upload = multer({ dest: 'public/uploads/' });
+
+/////////////////////////////////
+// Express Setup
+/////////////////////////////////
 const app = express();
+
+// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 app.use(express.static(__dirname)); 
 
-const port = 6543;
-const uri = "mongodb://localhost:27017"; // MongoDB URI
+/////////////////////////////////
+// Database Connection
+/////////////////////////////////
 const client = new MongoClient(uri);
 
-// Set up multer to handle form data
-const fs = require('fs');
-const upload = multer({ dest: 'public/uploads/' }); // Update multer configuration 
-
-// Connect to MongoDB when the server starts
 async function connectDB() {
     try {
         await client.connect();
@@ -35,34 +54,36 @@ async function connectDB() {
 }
 connectDB();
 
+/////////////////////////////////
+// Routes
+/////////////////////////////////
 // Serve HTML page on "/"
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "streamNetflixWeb.html"));
 });
 
-app.use(express.json());
 
 ///////////////////////////////////
-// Login Functions
+// Login Functions/Endpoints
 ///////////////////////////////////
 
 // Handle failed login attempts by keeping track of consecutive
 // login attempts, if number of attempts at 3, delete account
 async function handleFailedLogin(collection, user) {
-    // Find the user in the database
+    // find the user in the database
     const existUser = await collection.findOne({ user });
 
-    // Increment failedAttempts on failed login
+    // increment failedAttempts on failed login
     const newTrys = (existUser.failedAttempts || 0) + 1;
 
     if (newTrys >= 3) {
-        // Delete the user after 3 consecutive failed attempts
+        // delete the user after 3 consecutive failed attempts
         await collection.deleteOne({ user });
         return { 
             status: "userDeleted", 
             message: `User ${existUser.user} deleted due to 3 failed logins.` };
     } else {
-        // Update failedAttempts in the database
+        // update failedAttempts in the database
         await collection.updateOne(
             { user },
             { $set: { failedAttempts: newTrys } }
@@ -113,35 +134,36 @@ app.post("/checkNewUser", upload.none(), async (req, res) => {
 // Checks login info for matching info, if no match sends 
 // message to make a new account instead, otherwise checks login as normal
 app.post("/checkLogin", upload.none(), async (req, res) => {
+
     const { user, password } = req.body;
 
     try {
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieCollection");
 
-        // Check if the user exists
+        // check if the user exists
         const existUser = await collection.findOne({ user });
 
-        // User does not exist
+        // user does not exist
         if (!existUser) {
             return res.json({ status: "badLogin", 
                               message: "User not found. Please create an account." });
         }
 
-        // Hash password w/ the salt associated w/ account to confirm right
+        // hash password w/ the salt associated w/ account to confirm right
         const hashedPassword = hashPassword(password, existUser.salt);
         
-        // User exists, check password
+        // user exists, check password
         if (hashedPassword === existUser.password) {
             await collection.updateOne({ user }, { $set: { failedAttempts: 0 } });
             return res.json({ 
                 status: "goodLogin", 
                 message: `Hi ${user}!`,
                 userID: existUser._id,
-                role: existUser.role // Include role in response
+                role: existUser.role // include role in response
             });
         } else {
-            // Handle failed login
+            // handle failed login
             const result = await handleFailedLogin(collection, user);
             return res.json(result);
         }
@@ -149,6 +171,7 @@ app.post("/checkLogin", upload.none(), async (req, res) => {
         console.error("Error checking login:", error);
         return res.status(500).json({ status: "error", message: "Error processing login" });
     }
+
 });
 
 // Password hashing function
@@ -212,59 +235,73 @@ app.listen(port, () => {
 
 
 ///////////////////////////////////
-// Movie Gallery API Endpoints
+// Movie Gallery API Endpoint
 ///////////////////////////////////
 
-// Get all movies sorted alphabetically with needed info
+// Fetches movies with possible filtering
 app.get('/api/movies', async (req, res) => {
+
     try {
+        // get query parameters from the request URL
         const { search, ids } = req.query;
+        
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieGallery");
         
         let query = {};
-        if (search) {
-            query = { 
-                $or: [ { title: { $regex: search, $options: 'i' } },
-                       { genre: { $regex: search, $options: 'i' } } ] };
-        } else if (ids) {
-            const movieIDs = ids.split(',').map(id => new ObjectId(id));
-            query = { _id: { $in: movieIDs } }; }
         
+        // make the query based on provided info
+        if (search) {
+            // if search parameter exists, create a case-insensitive regex search
+            query = { 
+                $or: [ { title: { $regex: search, $options: 'i' } },  // 'i' is case insensitive
+                    { genre: { $regex: search, $options: 'i' } } ] };
+                
+        } else if (ids) {
+            // if id exists make query to get it
+            const movieIDs = ids.split(',').map(id => new ObjectId(id));
+            query = { _id: { $in: movieIDs } };  // $in = matches any value in the array
+        }
+        
+        // query with sort (alphabetical order) and specified fields
         const movies = await collection.find(query)
-            .sort({ sortTitle: 1 })
-            .project({
-                _id: 1, title: 1,
-                genre: 1, youtubeId: 1,
-                thumbnail: 1, totalLikes: 1,
-                totalDislikes: 1, 
-                marketingComments: 1 
-            })
-            .toArray();
+            .sort({ sortTitle: 1 })  
+            .project({ _id: 1, title: 1, genre: 1, 
+                youtubeId: 1, thumbnail: 1, 
+                totalLikes: 1,totalDislikes: 1, 
+                marketingComments: 1 })
+            .toArray();  
             
+        // validate received proper movie data
         if (!movies) throw new Error("Invalid movies data received");
         
         res.json(movies);
+        
     } catch (error) {
+        // handle any errors that occur during the process
         console.error("Error fetching movies:", error);
+        
         res.status(500).json({ 
             error: "Failed to fetch movies",
-            details: error.message });
+            details: error.message  });
     }
 });
 
+///////////////////////////////////
+// Movie Editing Endpoints
+///////////////////////////////////
+
 // Add a new movie (editor only)
 app.post('/api/movies', upload.single('thumbnail'), async (req, res) => {
+
     try {
         const { title, genre, youtubeId } = req.body;
         
-        if (!title || !genre || !youtubeId) {
-            return res.status(400).json({ error: "Title, genre and YouTube ID are required" }); }
-        
+        // check youtube ID
         if (!/^[a-zA-Z0-9_-]{11}$/.test(youtubeId)) {
             return res.status(400).json({ error: "Invalid YouTube ID format" }); }
         
-        // Handle thumbnail upload
+        // handle thumbnail upload
         let thumbnailPath = '';
         if (req.file) {
             const fileExt = path.extname(req.file.originalname);
@@ -278,6 +315,7 @@ app.post('/api/movies', upload.single('thumbnail'), async (req, res) => {
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieGallery");
         
+        // create new movie with info and insert
         const newMovie = {
             title, sortTitle: title.toLowerCase().replace(/^the /, ''),
             genre, youtubeId,
@@ -296,12 +334,15 @@ app.post('/api/movies', upload.single('thumbnail'), async (req, res) => {
 
 // Delete a movie (editor only)
 app.delete('/api/movies/:id', async (req, res) => {
+
     try {
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieGallery");
         
+        // delete movie
         const result = await collection.deleteOne({ _id: new ObjectId(req.params.id) });
         
+        // if something went wrong and movie wasn't there
         if (result.deletedCount === 0) {
             return res.status(404).json({ error: "Movie not found" });
         }
@@ -313,70 +354,35 @@ app.delete('/api/movies/:id', async (req, res) => {
     }
 });
 
+///////////////////////////////////////////////////
+// Likes/Dislikes and Comments Endpoints/Functions
+///////////////////////////////////////////////////
+
 // Manages Likes/Dislike actively
-// STILL TOO LONG
 app.post('/updateLikeDislike', async (req, res) => {
     const { movieID, action, userID } = req.body;
 
     try {
+        // check inputs
+        if (!movieID || !action || !userID) {
+            return res.status(400).json({ error: "Missing required fields" });}
+
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieGallery");
         const userCollection = database.collection("streamMovieCollection");
 
-        // Verify user exists
-        const user = await userCollection.findOne({ _id: new ObjectId(userID) });
-        if (!user) return res.status(404).json({ error: "User not found" });
+        // check user and movie exist
+        const { userLikes, userDislikes, movieObjectId } = await validateUserAndMovie(
+            userCollection, collection, userID, movieID );
 
-        // Verify movie exists
-        const movie = await collection.findOne({ _id: new ObjectId(movieID) });
-        if (!movie) return res.status(404).json({ error: "Movie not found" });
+        // determine update operations
+        const { movieUpdate, userUpdate } = getUpdateOperations(
+            action, movieObjectId, userLikes, userDislikes );
 
-        // Prepare update operations
-        let movieUpdate = {};
-        let userUpdate = {};
-        const movieObjectId = new ObjectId(movieID);
-        const userLikes = user.likedMovies || [];
-        const userDislikes = user.dislikedMovies || [];
+        // execute updates
+        await performUpdates(collection, userCollection, movieID, userID, movieUpdate, userUpdate);
 
-        if (action === 'like') {
-            if (userLikes.some(id => id.equals(movieObjectId))) {
-                // Already liked - remove like
-                movieUpdate = { $inc: { totalLikes: -1 } };
-                userUpdate = { $pull: { likedMovies: movieObjectId } };
-            } else {
-                // Add like
-                movieUpdate = { $inc: { totalLikes: 1 } };
-                userUpdate = { $addToSet: { likedMovies: movieObjectId } };
-                // Remove from dislikes if present
-                if (userDislikes.some(id => id.equals(movieObjectId))) {
-                    movieUpdate.$inc.totalDislikes = -1;
-                    userUpdate.$pull = { dislikedMovies: movieObjectId };
-                }
-            }
-        } else if (action === 'dislike') {
-            if (userDislikes.some(id => id.equals(movieObjectId))) {
-                // Already disliked - remove dislike
-                movieUpdate = { $inc: { totalDislikes: -1 } };
-                userUpdate = { $pull: { dislikedMovies: movieObjectId } };
-            } else {
-                // Add dislike
-                movieUpdate = { $inc: { totalDislikes: 1 } };
-                userUpdate = { $addToSet: { dislikedMovies: movieObjectId } };
-                // Remove from likes if present
-                if (userLikes.some(id => id.equals(movieObjectId))) {
-                    movieUpdate.$inc.totalLikes = -1;
-                    userUpdate.$pull = { likedMovies: movieObjectId };
-                }
-            }
-        }
-
-        // Execute updates
-        await Promise.all([
-            collection.updateOne({ _id: new ObjectId(movieID) }, movieUpdate),
-            userCollection.updateOne({ _id: new ObjectId(userID) }, userUpdate)
-        ]);
-
-        // Return fresh user data
+        // return updated user data
         const updatedUser = await userCollection.findOne({ _id: new ObjectId(userID) });
         res.json({
             likedMovies: updatedUser.likedMovies || [],
@@ -385,30 +391,105 @@ app.post('/updateLikeDislike', async (req, res) => {
 
     } catch (error) {
         console.error("Error in /updateLikeDislike:", error);
-        res.status(500).json({ error: "Failed to update preference" });
+        const status = error.message.includes("not found") ? 404 : 500;
+        res.status(status).json({ error: error.message || "Failed to update preference" });
     }
 });
 
-// Collects User info
+// Updates likes/dislikes
+function getUpdateOperations(action, movieObjectId, userLikes, userDislikes) {
+    let movieUpdate = {};
+    let userUpdate = {};
+
+    if (action === 'like') {
+        if (userLikes.some(id => id.equals(movieObjectId))) {
+            // remove like
+            movieUpdate = { $inc: { totalLikes: -1 } };
+            userUpdate = { $pull: { likedMovies: movieObjectId } };
+        } else {
+            // add like
+            movieUpdate = { $inc: { totalLikes: 1 } };
+            userUpdate = { $addToSet: { likedMovies: movieObjectId } };
+            // remove dislike if exists
+            if (userDislikes.some(id => id.equals(movieObjectId))) {
+                movieUpdate.$inc.totalDislikes = -1;
+                userUpdate.$pull = { dislikedMovies: movieObjectId };
+            }
+        }
+    } else if (action === 'dislike') {
+        if (userDislikes.some(id => id.equals(movieObjectId))) {
+            // remove dislike
+            movieUpdate = { $inc: { totalDislikes: -1 } };
+            userUpdate = { $pull: { dislikedMovies: movieObjectId } };
+        } else {
+            // add dislike
+            movieUpdate = { $inc: { totalDislikes: 1 } };
+            userUpdate = { $addToSet: { dislikedMovies: movieObjectId } };
+            // remove like if exists
+            if (userLikes.some(id => id.equals(movieObjectId))) {
+                movieUpdate.$inc.totalLikes = -1;
+                userUpdate.$pull = { likedMovies: movieObjectId };
+            }
+        }
+    }
+
+    return { movieUpdate, userUpdate };
+}
+
+// Validates info
+async function validateUserAndMovie(userCollection, collection, userID, movieID) {
+    const user = await userCollection.findOne({ _id: new ObjectId(userID) });
+    if (!user) throw new Error("User not found");
+    
+    const movie = await collection.findOne({ _id: new ObjectId(movieID) });
+    if (!movie) throw new Error("Movie not found");
+    
+    return {
+        user,
+        movie,
+        movieObjectId: new ObjectId(movieID),
+        userLikes: user.likedMovies || [],
+        userDislikes: user.dislikedMovies || []
+    };
+}
+
+// Update database
+async function performUpdates(collection, userCollection, movieID, userID, movieUpdate, userUpdate) {
+    await Promise.all([
+        collection.updateOne({ _id: new ObjectId(movieID) }, movieUpdate),
+        userCollection.updateOne({ _id: new ObjectId(userID) }, userUpdate)
+    ]);
+}
+
+// Collects User data (likes/dislikes) from ID
 app.get('/user/:id', async (req, res) => {
+
     try {
         const userID = req.params.id;
         const database = client.db("streamMovieDb");
         const userCollection = database.collection("streamMovieCollection");
 
+        // check the user ID format
         if (!ObjectId.isValid(userID)) {
-            return res.status(400).json({ error: "Invalid user ID format" }); }
+            return res.status(400).json({ 
+                error: "Invalid user ID format" 
+            }); 
+        }
 
+        // query the DB for the user with specific id
         const user = await userCollection.findOne({ 
-            _id: new ObjectId(userID) }, 
-            { projection: {
-                password: 0, salt: 0,
-                failedAttempts: 0 } });
+            _id: new ObjectId(userID) 
+        }, { 
+            projection: {
+                password: 0, salt: 0,        
+                failedAttempts: 0 } 
+        });
 
+        // if user isn't found
         if (!user) {
             return res.status(404).json({ error: "User not found" }); }
 
-        // Convert ObjectIds to strings for client-side
+        // convert objectIDs to strings (likes/dislikes)
         user.likedMovies = (user.likedMovies || []).map(id => id.toString());
         user.dislikedMovies = (user.dislikedMovies || []).map(id => id.toString());
         
@@ -416,31 +497,46 @@ app.get('/user/:id', async (req, res) => {
 
     } catch (error) {
         console.error("Error retrieving user data:", error);
-        res.status(500).json({ error: "Server error" });
+
+        res.status(500).json({ 
+            error: "Server error" });
     }
 });
 
-// Handle comments
+// Handle saving/updating marketing comments on a movie
 app.post('/api/movies/:id/comments', async (req, res) => {
+
     try {
         const movieId = req.params.id;
         const { comment } = req.body;
         
+        // check the movie ID format
         if (!ObjectId.isValid(movieId)) {
-            return res.status(400).json({ error: "Invalid movie ID format" });
+            return res.status(400).json({ 
+                error: "Invalid movie ID format" 
+            });
         }
 
         const database = client.db("streamMovieDb");
         const collection = database.collection("streamMovieGallery");
         
+        // update the movie document with the new comment
         await collection.updateOne(
             { _id: new ObjectId(movieId) },
             { $set: { marketingComments: comment } }
         );
         
-        res.json({ status: "success", message: "Comment saved" });
+        // success message
+        res.json({ 
+            status: "success", 
+            message: "Comment saved" 
+        });
+
     } catch (error) {
         console.error("Error saving comment:", error);
-        res.status(500).json({ error: "Failed to save comment" });
+        
+        res.status(500).json({ 
+            error: "Failed to save comment" 
+        });
     }
 });
