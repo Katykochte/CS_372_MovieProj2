@@ -10,12 +10,12 @@ Edit the section that says "User credentials" and it will spit out a hashed pass
 Add a new collection to the streamMovieDb called streamMovieGallery (this will hold all the url/info for the youtube videos)
 These also need to be manually added but the easiest way to do so is by logging into the content editor 
 
-### Add another folder inside /public called "uploads" this is where the thumbnails uploaded will go to
+#### Add another folder inside /public called "uploads" this is where the thumbnails uploaded will go to
 
 
 ## Known Issues
-Two Functions rn are longer then 30 lines. They are noted/labeled clearly as such. 
+All functions pass line count check
 
-No story issues right now as of 4/12/25 
+Like/Dislikes clicked on the favorites tab is not reactingly ideally. Will work on that. 4/13/25
 
 
