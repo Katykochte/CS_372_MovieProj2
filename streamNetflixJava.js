@@ -322,13 +322,13 @@ function renderMovies(movies, searchTerm = '') {
 }
 
 // Creates rows of movies for gallery 
-function createMovieRow(movies) {
+function createMovieRow(movies, isFavoritePage = false) {
     try {
         const { likedMovies, dislikedMovies } = getUserMoviePreferences();
         let rowHtml = '<div class="row">';
         
         movies.forEach(movie => {
-            rowHtml += createMovieCard(movie, likedMovies, dislikedMovies);
+            rowHtml += createMovieCard(movie, likedMovies, dislikedMovies, isFavoritePage);
         });
         
         return rowHtml + '</div>';
@@ -379,17 +379,35 @@ function getRoleSpecificMovieHtml(movie) {
     return html;
 }
 
-// Creates HTML for a single movie card
-function createMovieCard(movie, likedMovies, dislikedMovies) {
+// Creates the like/dislike buttons HTML (only for gallery page)
+function createLikeDislikeButtons(movieId, movie, likedMovies, dislikedMovies) {
+    return `
+    <div class="like-dislike-buttons">
+        <img src="/public/assets/thumbs-up.svg" 
+             class="like-btn ${likedMovies.includes(movieId) ? 'liked' : ''}" 
+             data-movie-id="${movie._id}">
+        <img src="/public/assets/thumbs-down.svg" 
+             class="dislike-btn ${dislikedMovies.includes(movieId) ? 'disliked' : ''}" 
+             data-movie-id="${movie._id}">
+    </div>`;
+}
 
+// Creates HTML for a single movie card
+function createMovieCard(movie, likedMovies, dislikedMovies, isFavoritePage = false) {
     if (!movie._id || !movie.youtubeId) {
         console.warn("Invalid movie data:", movie);
-        return '';}
+        return '';
+    }
 
     const movieId = movie._id.toString();
     const thumbnail = getYouTubeThumbnail(movie.youtubeId, movie.thumbnail);
     const roleHtml = getRoleSpecificMovieHtml(movie);
     
+    const likeDislikeHtml = isFavoritePage ? '' : createLikeDislikeButtons(movieId, movie, likedMovies, dislikedMovies);
+    const deleteButtonHtml = currentUserRole === 'content editor' 
+        ? `<div class="delete-movie" onclick="handleDeleteMovie('${movie._id}')">×</div>` 
+        : '';
+
     return `
     <div class="column">
         <div class="movie-card" data-movie-id="${movie._id}">
@@ -403,16 +421,8 @@ function createMovieCard(movie, likedMovies, dislikedMovies) {
                 <p>${movie.genre}</p>
                 ${roleHtml}
             </div>
-            <div class="like-dislike-buttons">
-                <img src="/public/assets/thumbs-up.svg" 
-                     class="like-btn ${likedMovies.includes(movieId) ? 'liked' : ''}" 
-                     data-movie-id="${movie._id}">
-                <img src="/public/assets/thumbs-down.svg" 
-                     class="dislike-btn ${dislikedMovies.includes(movieId) ? 'disliked' : ''}" 
-                     data-movie-id="${movie._id}">
-            </div>
-            ${currentUserRole === 'content editor' ? 
-              `<div class="delete-movie" onclick="handleDeleteMovie('${movie._id}')">×</div>` : ''}
+            ${likeDislikeHtml}
+            ${deleteButtonHtml}
         </div>
     </div>`;
 }
@@ -486,7 +496,6 @@ async function showFavorites() {
 
 // Renders favorites movies
 function renderFavorites(movies) {
-
     const favoritesPage = document.getElementById("favoritesPage");
     if (!favoritesPage) return; // return if somehow wrong page
 
@@ -500,7 +509,9 @@ function renderFavorites(movies) {
     } else {
         for (let i = 0; i < movies.length; i += 4) {
             const rowMovies = movies.slice(i, i + 4);
-            container.innerHTML += createMovieRow(rowMovies);}
+            // passed w/ true for favorites page = no likes/dislikes
+            container.innerHTML += createMovieRow(rowMovies, true); 
+        }
     }
 
     // preserve existing page structure
@@ -509,7 +520,6 @@ function renderFavorites(movies) {
     if (header) favoritesPage.appendChild(header);
     favoritesPage.appendChild(container);
 
-    addLikeDislikeListeners();
 }
 
 ///////////////////////////////////

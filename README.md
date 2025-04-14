@@ -12,10 +12,8 @@ These also need to be manually added but the easiest way to do so is by logging 
 
 #### Add another folder inside /public called "uploads" this is where the thumbnails uploaded will go to
 
-
 ## Known Issues
-All functions pass line count check
+All functions pass line count check 
 
-Like/Dislikes clicked on the favorites tab is not reactingly ideally. Will work on that. 4/13/25
-
+No known issues but feel free to look for any in current implementation (4/13/25)
 

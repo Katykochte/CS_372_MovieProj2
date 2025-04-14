@@ -252,6 +252,7 @@ Works with streamNetflixWeb.html
 
 .movie-info {
   padding: 10px;
+  width: calc(100% - 20px); /* Account for padding */
 }
 
 .movie-info h3 {
@@ -342,14 +343,16 @@ Works with streamNetflixWeb.html
   margin-top: 10px;
   padding: 10px;
   background: #f5f5f5;
-  border-radius: 4px;
+  border: 1px solid #ddd; /* Full border */
+  border-radius: 4px; /* Rounded corners all around */
 }
 
 .comment-box {
   width: 100%;
+  box-sizing: border-box; /* Include padding in width calculation */
   min-height: 60px;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid #ccc; /* Subtle border for the textarea */
   border-radius: 4px;
   resize: vertical;
   margin-bottom: 5px;
@@ -380,11 +383,5 @@ Works with streamNetflixWeb.html
   margin-top: 10px;
 }
 
-/* Make the comment section more distinct */
-.marketing-comment {
-  margin-top: 10px;
-  padding: 10px;
-  background: #f5f5f5;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-}
+
+
