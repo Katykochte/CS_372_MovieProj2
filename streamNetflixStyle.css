@@ -5,12 +5,172 @@ Holds all styling for the Web page
 Works with streamNetflixWeb.html
 */
 
+
+/* Global font settings */
+/**************************************************/
+body, button, input, textarea {
+  font-family: 'Barlow', sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: 'Barlow', sans-serif;
+  font-weight: 600; 
+}
+
+button {
+  font-weight: 500;
+}
+
+body {
+  font-weight: 400;
+}
+/**************************************************/
+
+
+/* Login page styling */
+/**************************************************/
+#loginPage {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(35, 97, 146, 0.2);
+}
+
+#nameForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Form field groups */
+#nameForm .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#nameForm label {
+  font-size: 1.1rem;
+  color: rgb(35, 97, 146);
+  font-weight: 500;
+  margin-left: 5px; 
+}
+
+#nameForm input {
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 1.1rem;
+  border: 2px solid #87D1E6;
+  border-radius: 8px;
+  background-color: white;
+  transition: all 0.3s ease;
+  box-sizing: border-box; 
+}
+
+#loginPage .button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+#loginPage button {
+  flex: 1;
+  padding: 14px;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  text-align: center;
+}
+
+#loginBt {
+  background-color: rgb(35, 97, 146);
+  color: white;
+}
+
+#loginBt:hover {
+  background-color: rgb(25, 77, 126);
+  transform: translateY(-2px);
+}
+
+#newUserBt {
+  background-color: rgb(255, 205, 0);
+  color: rgb(35, 97, 146);
+}
+
+#newUserBt:hover {
+  background-color: rgb(230, 185, 0);
+  transform: translateY(-2px);
+}
+
+#forgotPwBT {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 12px;
+  background-color: transparent;
+  color: rgb(35, 97, 146);
+  border: 2px solid rgb(35, 97, 146);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+#forgotPwBT:hover {
+  background-color: rgba(35, 97, 146, 0.1);
+}
+
+#resetPwForm {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(135, 209, 230, 0.2);
+  border-radius: 8px;
+}
+
+#resetPwForm input {
+  width: 100%;
+  padding: 12px 15px;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  border: 2px solid #87D1E6;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+#resetPwBT {
+  background-color: rgb(35, 97, 146);
+  color: white;
+  padding: 12px;
+  width: 100%;
+}
+
+#resetPwBT:hover {
+  background-color: rgb(25, 77, 126);
+}
+
+@media (max-width: 600px) {
+  #loginPage {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  #loginPage .button-group {
+    flex-direction: column;
+  }
+}
+/**************************************************/
+
+
+/* Style the buttons inside the tab */
+/**************************************************/
 .tab {
   overflow: hidden;
   background-color: rgb(35, 97, 146);
 }
   
-/* Style the buttons inside the tab */
 .tab button {
   background-color: inherit;
   float: left;
@@ -18,83 +178,78 @@ Works with streamNetflixWeb.html
   padding: 14px 16px;
   transition: 0.2s;
   font-size: 20px;
-  font-family: Georgia, 'Times New Roman', Times, serif;
 }
   
-/* Change background color of buttons on hover */
 .tab button:hover {
   background-color: rgb(255, 205, 0);
 }
   
-/* Create an active/current tablink class */
 .tab button.active {
   background-color: rgb(255, 205, 0);
 }
 
-/* Style the tab content */
 .tabcontent {
   display: none;
   padding: 6px 12px;
 }
+/**************************************************/
 
-/* Grid Layout for Movies */
+
+/* Grid Layout for Movie Gallery */
+/**************************************************/
 .row {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   margin-bottom: 20px;
-  gap: 15px; /* Space between columns */
+  gap: 15px; 
 }
 
 .column {
-  flex: 0 0 calc(25% - 15px); /* 4 columns with gap accounted for */
+  flex: 0 0 calc(25% - 15px);
   box-sizing: border-box;
 }
+/**************************************************/
 
-/* Video player styling */
-.tooltip iframe {
-  width: 100%;
-  height: 200px;
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
 
-.tooltip:hover iframe {
-  transform: scale(1.03);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-/* Responsive adjustments */
+/* Responsive adjustments for different screens */
+/**************************************************/
 @media (max-width: 1024px) {
   .column {
-    flex: 0 0 calc(33.333% - 15px); /* 3 columns on medium screens */
+    flex: 0 0 calc(33.333% - 15px); 
   }
 }
 
 @media (max-width: 768px) {
   .column {
-    flex: 0 0 calc(50% - 15px); /* 2 columns on tablets */
+    flex: 0 0 calc(50% - 15px); 
   }
 }
 
 @media (max-width: 480px) {
   .column {
-    flex: 0 0 100%; /* 1 column on mobile */
+    flex: 0 0 100%; 
   }
   
   .tooltip iframe {
-    height: 250px; /* Slightly taller on small screens */
+    height: 250px; 
   }
 }
+/**************************************************/
+
 
 /* Editor Controls */
+/**************************************************/
 .editor-controls {
-  background: #f5f5f5;
+  background: rgb(35, 97, 146);
   padding: 20px;
   margin-bottom: 20px;
   border-radius: 8px;
+  color: white; /* Makes all text white by default */
+}
+
+.editor-controls h3 {
+  color: white; /* Ensures heading is white */
 }
 
 .add-movie-form {
@@ -108,16 +263,38 @@ Works with streamNetflixWeb.html
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
+  background-color: #ffffff; 
+  color: #111C4E; 
+}
+
+.add-movie-form input::placeholder {
+  color: #87D1E6; 
+}
+
+/* Style the file input button */
+.add-movie-form input[type="file"] {
+  background-color: #ffffff; 
+  color: #111C4E; 
+  padding: 8px;
+  cursor: pointer;
 }
 
 .add-movie-form button {
   grid-column: span 2;
   padding: 10px;
-  background-color: rgb(35, 97, 146);
-  color: white;
+  background-color: rgb(255, 205, 0);
+  color: rgb(35, 97, 146);
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: 600;
+}
+
+.url-hint {
+  grid-column: span 2;
+  color: white;
+  font-size: 0.8em;
+  margin-top: -5px;
 }
 
 @media (max-width: 768px) {
@@ -128,8 +305,11 @@ Works with streamNetflixWeb.html
       grid-column: span 1;
   }
 }
+/**************************************************/
+
 
 /* Search Container */
+/**************************************************/
 .search-container {
   margin: 20px 0;
   display: flex;
@@ -141,7 +321,6 @@ Works with streamNetflixWeb.html
   border: 1px solid #ddd;
   border-radius: 4px;
   flex-grow: 1;
-  font-family: Georgia, 'Times New Roman', Times, serif;
 }
 
 .search-container button {
@@ -156,7 +335,11 @@ Works with streamNetflixWeb.html
 .search-container button:hover {
   background-color: rgb(25, 77, 126);
 }
+/**************************************************/
 
+
+/* Likes / Dislikes buttons */
+/**************************************************/
 .like-dislike-buttons {
   display: flex;
   justify-content: space-evenly;
@@ -174,58 +357,63 @@ Works with streamNetflixWeb.html
   transform: scale(1.2);
 }
 
-/* Highlight for liked movies */
 .like-btn.liked {
   filter: invert(75%) sepia(90%) saturate(500%) hue-rotate(80deg);
 }
 
-/* Dislike button (red) */
 .dislike-btn.disliked {
   filter: invert(25%) sepia(100%) saturate(2000%) hue-rotate(340deg);
 }
 
-/* Animation for feedback */
 .like-btn, .dislike-btn {
   transition: transform 0.2s, filter 0.3s;
 }
 .like-btn:active, .dislike-btn:active {
   transform: scale(1.3);
 }
+/**************************************************/
 
 
-/* Add these new styles */
+/* Movie Card styles */
+/**************************************************/
 .movie-card {
   position: relative;
-  background: white;
+  background: #ffffff;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgb(35,97,146);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.movie-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-.movie-card:hover .delete-movie {
-  opacity: 1;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgb(35,97,146);
+    
+    .delete-movie {
+      opacity: 1;
+    }
+  }
 }
 
 .thumbnail-container {
   position: relative;
   cursor: pointer;
   overflow: hidden;
-}
-
-.movie-thumbnail {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.thumbnail-container:hover .movie-thumbnail {
-  transform: scale(1.05);
+  
+  .movie-thumbnail {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+  
+  &:hover {
+    .movie-thumbnail {
+      transform: scale(1.05);
+    }
+    .play-icon {
+      opacity: 1;
+    }
+  }
 }
 
 .play-icon {
@@ -246,25 +434,21 @@ Works with streamNetflixWeb.html
   transition: opacity 0.3s ease;
 }
 
-.thumbnail-container:hover .play-icon {
-  opacity: 1;
-}
-
 .movie-info {
   padding: 10px;
-  width: calc(100% - 20px); /* Account for padding */
-}
-
-.movie-info h3 {
-  margin: 0 0 5px 0;
-  font-size: 16px;
-  color: #333;
-}
-
-.movie-info p {
-  margin: 0;
-  font-size: 14px;
-  color: #666;
+  width: calc(100% - 20px);
+  
+  h3 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+    color: #111C4E;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #111C4E;
+  }
 }
 
 .delete-movie {
@@ -282,15 +466,17 @@ Works with streamNetflixWeb.html
   z-index: 10;
   opacity: 0;
   transition: opacity 0.3s ease;
-  display: flex;           /* Add this */
-  justify-content: center; /* Add this */
-  align-items: center;     /* Add this */
-  padding: 0;              /* Add this to ensure no extra spacing */
-  line-height: 1;          /* Add this to prevent vertical misalignment */
-  font-family: Arial, sans-serif; /* Ensures consistent cross-browser rendering */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
 }
+/**************************************************/
+
 
 /* Movie Player Modal Styles */
+/**************************************************/
 #moviePlayerModal {
   display: none;
   position: fixed;
@@ -329,8 +515,11 @@ Works with streamNetflixWeb.html
   font-size: 16px;
   align-self: center;
 }
+/**************************************************/
 
-/* For likes/dislikes/movie stats */
+
+/* For Marketing Manger movie stats */
+/**************************************************/
 .movie-stats {
   display: flex;
   justify-content: space-between;
@@ -342,17 +531,17 @@ Works with streamNetflixWeb.html
 .marketing-comment {
   margin-top: 10px;
   padding: 10px;
-  background: #f5f5f5;
-  border: 1px solid #ddd; /* Full border */
-  border-radius: 4px; /* Rounded corners all around */
+  background: #87D1E6;
+  border: 1px solid #ddd; 
+  border-radius: 4px; 
 }
 
 .comment-box {
   width: 100%;
-  box-sizing: border-box; /* Include padding in width calculation */
+  box-sizing: border-box; 
   min-height: 60px;
   padding: 8px;
-  border: 1px solid #ccc; /* Subtle border for the textarea */
+  border: 1px solid #ccc;
   border-radius: 4px;
   resize: vertical;
   margin-bottom: 5px;
@@ -371,17 +560,21 @@ Works with streamNetflixWeb.html
 .save-comment:hover {
   background-color: #1a4a75;
 }
+/**************************************************/
+
 
 /* View-only comment style for content editors */
+/**************************************************/
 .comment-view {
   padding: 8px;
-  background: #f5f5f5;
+  background: #87D1E6;
   border-radius: 4px;
   border-left: 3px solid #236192;
   font-size: 14px;
   line-height: 1.4;
   margin-top: 10px;
 }
+/**************************************************/
 
 
 
