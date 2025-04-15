@@ -1,6 +1,8 @@
 # CS_372_MovieProj2
 Repo for second CS 372 Project
 
+# Notes for reviewer group: as of 4/15/25 THIS IS NOT FULLY FINISHED 
+
 ## Notes to consider
 
 makeAdminUser.js will make admin (content editor and marketing manager) account info for you using regular user and password. 
