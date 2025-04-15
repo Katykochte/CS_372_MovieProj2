@@ -142,6 +142,8 @@ async function handleAuthResponse(result) {
     if (result.status === "newUser" || result.status === "goodLogin") {
         // store user data
         localStorage.setItem('userID', result.userID);
+        // Store the time of the login to compare with later
+        localStorage.setItem('loginTime', Date.now());
         currentUserRole = result.role || 'viewer';
         localStorage.setItem(`userData_${result.userID}`, JSON.stringify({
             likedMovies: [], dislikedMovies: [] 
@@ -165,6 +167,10 @@ async function handleAuthResponse(result) {
         document.getElementById("favoritesButton").style.display = "block";
         document.getElementById("galleryButton").style.display = "block";
         loadMovies();
+        // Begin checking for timeout
+        checkForTimeout();
+        // Call checkForTimeout every 30 seconds
+        setInterval(checkForTimeout, 30000);
     }
     alert(result.message);
 
@@ -745,5 +751,17 @@ async function handleLikeDislike(movieID, action) {
     } catch (error) {
         console.error("Error updating like/dislike:", error);
         alert("Failed to update preference. Please try again.");
+    }
+}
+
+// This function compares login time to current time to decide if a lockout is nescessary
+function checkForTimeout(){
+    const loginTime = localStorage.getItem('loginTime');
+    const now = Date.now();
+
+    if(loginTime && now - parseInt(loginTime) > 24 * 60 * 60 * 1000) {
+        alert("Your session has expired. Please login again to continue");
+        localStorage.clear();
+        openLoginTab();
     }
 }
