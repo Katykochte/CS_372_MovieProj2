@@ -1,9 +1,14 @@
 # CS_372_MovieProj2
 Repo for second CS 372 Project
 
-# Notes for reviewer group: as of 4/15/25 THIS IS NOT FULLY FINISHED 
+# Notes for reviewers: 
+Hopefully, this repo https://github.com/Katykochte/CS_372_Review/tree/main should have a Docker image you 
+can download and use to get the webiste running. If not it also has instructions on how to use the files 
+in this repo. Our emails are also in that repo if something goes wrong (hopefully it works though!)
 
-## Notes to consider
+
+
+## Notes for developers
 
 makeAdminUser.js will make admin (content editor and marketing manager) account info for you using regular user and password. 
 Edit the section that says "User credentials" and it will spit out a hashed password and insert for manual DB adding through terminal. (REMEMBER TO CHANGE THE "role: " PART, can be "viewer", "content editor", or "marketing manager") Users added through new user button are automatically "viewers" so other roles must be added this way. 
