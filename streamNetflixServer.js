@@ -1,9 +1,5 @@
 // Katy Kochte, Cleary Bettisworth, Sabian Cavazos
 // CS 372 Movie Streaming Site (Server)
-// Holds all ther server side functions
-
-// Katy Kochte, Cleary Bettisworth, Sabian Cavazos
-// CS 372 Movie Streaming Site (Server)
 // Holds all the server side functions
 
 /////////////////////////////////

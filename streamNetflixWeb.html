@@ -66,19 +66,19 @@
                 Your Favorites
             </b>
         </h1>
-        <div class="movies-container"></div>
+        <div class="movies-container" id="movies-container"></div>
     </div>
 
     <!-- Division for Viewer content -->
     <div id="galleryPage" name="galleryPage" style="display:none;">
         <h1 class="dashboard-title" style="font-size:35px; color:rgb(35, 97, 146);">
-            <!-- Title will be set dynamically by JavaScript -->
+            <!-- Title will be set by JavaScript -->
         </h1>
-        <div class="search-container">
+        <div class="search-container" id="search-container">
             <input type="text" id="searchInput" placeholder="Search movies by title...">
-            <button onclick="searchMovies()">Search</button>
+            <button onclick="searchMovies()" name="searchBT" id="searchBT">Search</button>
         </div>
-        <!-- Movies will be inserted here by JavaScript -->
+        <!-- Movies will be inserted by JavaScript -->
     </div>
     
 
@@ -92,7 +92,7 @@
     <div id="moviePlayerModal">
         <div>
             <iframe id="moviePlayerFrame" style="width: 100%; height: 100%; border: none;"></iframe>
-            <button onclick="closeMoviePlayer()">
+            <button onclick="closeMoviePlayer()" name="closeBT" id="closeBT">
                 Close Player
             </button>
         </div>
