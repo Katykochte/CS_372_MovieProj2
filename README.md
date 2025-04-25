@@ -5,6 +5,7 @@ Repo for second CS 372 Project
 Hopefully, this repo https://github.com/Katykochte/CS_372_Review/tree/main should have a Docker image you 
 can download and use to get the webiste running. If not it also has instructions on how to use the files 
 in this repo. Our emails are also in that repo if something goes wrong (hopefully it works though!)
+### ALSO PLEASE RAISE ISSUES IN THIS REPO NOT THE ONE LINKED ABOVE, THANK YOU 
 
 
 
