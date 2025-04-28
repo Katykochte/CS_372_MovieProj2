@@ -1,15 +1,8 @@
 # CS_372_MovieProj2
 Repo for second CS 372 Project
 
-# Notes for reviewers: 
-Hopefully, this repo https://github.com/Katykochte/CS_372_Review/tree/main should have a Docker image you 
-can download and use to get the webiste running. If not it also has instructions on how to use the files 
-in this repo. Our emails are also in that repo if something goes wrong (hopefully it works though!)
-### ALSO PLEASE RAISE ISSUES IN THIS REPO NOT THE ONE LINKED ABOVE, THANK YOU 
-
-
-
-
+# Notes for Dr. Das: 
+This repo: https://github.com/Katykochte/CS_372_Review/tree/main is the repo that has our User Document as the README.md file for Project 4. **That repo also holds the most up-to-date code with everything needed to run the Docker image and the release code.** This current repo is not the one we want grading done on, as this is the working repo and does not have the finished files, please use the above-linked CS_372_Review repo for testing/grading. Thank you and have a great summer! 
 
 # Notes for developers
 
@@ -21,9 +14,4 @@ Add a new collection to the streamMovieDb called streamMovieGallery (this will h
 These also need to be manually added but the easiest way to do so is by logging into the content editor 
 
 #### Add another folder inside /public called "uploads" this is where the thumbnails uploaded will go to
-
-## Known Issues
-All functions pass line count check 
-
-No known issues but feel free to look for any in current implementation (4/13/25)
 
